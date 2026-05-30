@@ -1,7 +1,7 @@
 # Jardín de Oraciones — Plan de Trabajo
 
 **Última actualización:** 2026-05-30
-**Estado general:** 🟢 En progreso — Fase 1
+**Estado general:** 🟢 En progreso — Fase 3
 
 ---
 
@@ -23,9 +23,9 @@
 
 | Fase | Nombre | Estado |
 |------|--------|--------|
-| 1 | Fundaciones y Setup | 🟡 En progreso |
-| 2 | Autenticación | ⬜ Pendiente |
-| 3 | Jardines e Invitaciones | ⬜ Pendiente |
+| 1 | Fundaciones y Setup | ✅ Completa |
+| 2 | Autenticación | ✅ Completa |
+| 3 | Jardines e Invitaciones | 🟡 En progreso |
 | 4 | Semillas e Interacciones | ⬜ Pendiente |
 | 5 | Jardín Visual + Realtime | ⬜ Pendiente |
 | 6 | Notificaciones y PWA | ⬜ Pendiente |
@@ -43,18 +43,18 @@
 - [x] Instalar y configurar Tailwind CSS v4
 - [x] Definir design tokens (colores, tipografía, spacing, bordes)
 - [x] Configurar ESLint + Prettier
-- [ ] Deploy inicial en Vercel (rama `master`)
+- [x] Deploy inicial en Vercel (rama `master`) — https://jardin-de-oraciones.vercel.app
 
 ### Backend
 - [x] Scaffold Django + Django REST Framework
 - [x] Conectar Django a Supabase PostgreSQL (DATABASE_URL)
 - [x] Integración de Supabase Auth: middleware para validar JWT de Supabase en Django
 - [x] Configurar variables de entorno (.env local y en Railway)
-- [ ] Deploy inicial en Railway
+- [ ] Deploy inicial en Railway *(pendiente para Fase 3)*
 
 ### Supabase
-- [ ] Crear proyecto en Supabase *(requiere cuenta — ver supabase/README.md)*
-- [ ] Habilitar Auth (email/password) *(default en Supabase)*
+- [x] Crear proyecto en Supabase
+- [x] Habilitar Auth (email/password)
 - [x] Crear bucket en Storage para imágenes de jardines y semillas *(SQL listo en supabase/01_setup.sql)*
 - [x] Configurar Row Level Security (RLS) base *(SQL listo en supabase/01_setup.sql)*
 
@@ -65,20 +65,20 @@
 **Objetivo:** Flujo completo de auth desde la app.
 
 ### Pantallas
-- [ ] Pantalla de Login
-  - [ ] Logo + ilustración de planta (placeholder SVG)
-  - [ ] Frase bíblica rotativa
-  - [ ] Form: email + contraseña
-  - [ ] Link a registro y recuperar contraseña
-- [ ] Pantalla de Registro
-- [ ] Recuperar contraseña (flujo Supabase)
-- [ ] Perfil básico de usuario (nombre, avatar)
+- [x] Pantalla de Login
+  - [x] Logo + ilustración de planta (placeholder SVG)
+  - [x] Frase bíblica rotativa
+  - [x] Form: email + contraseña
+  - [x] Link a registro y recuperar contraseña
+- [x] Pantalla de Registro
+- [x] Recuperar contraseña (flujo Supabase)
+- [ ] Perfil básico de usuario (nombre, avatar) *(movido a Fase 7 — Ajustes)*
 
 ### Lógica
-- [ ] Auth context / store global (Zustand o Context API)
-- [ ] Protección de rutas autenticadas
-- [ ] Persistencia de sesión (refresh token de Supabase)
-- [ ] Onboarding mínimo post-registro
+- [x] Auth store global (Zustand)
+- [x] Protección de rutas autenticadas (ProtectedRoute)
+- [x] Persistencia de sesión (refresh token de Supabase)
+- [x] Onboarding mínimo post-registro (pantalla de confirmación de email)
 
 ---
 

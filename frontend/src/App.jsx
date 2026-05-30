@@ -4,26 +4,30 @@ import useAuthStore from './stores/authStore'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import GardensPage from './pages/GardensPage'
+import CreateGardenPage from './pages/CreateGardenPage'
+import JoinGardenPage from './pages/JoinGardenPage'
+import InvitePage from './pages/InvitePage'
 
-// Placeholder hasta Fase 3
-function GardensPage() {
+// Placeholder hasta Fase 5
+function GardenPage() {
+  return (
+    <div className="min-h-svh flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+      <p style={{ color: 'var(--color-text-muted)' }}>Jardín — Fase 5</p>
+    </div>
+  )
+}
+
+// Placeholder hasta Fase 7
+function SettingsPage() {
   const { signOut, user } = useAuthStore()
   return (
-    <div
-      className="min-h-svh flex flex-col items-center justify-center gap-4 px-6"
-      style={{ background: 'var(--color-bg)' }}
-    >
-      <span className="text-5xl">🌱</span>
-      <p className="text-lg font-medium" style={{ color: 'var(--color-text)' }}>
-        Hola, {user?.user_metadata?.display_name || user?.email}
-      </p>
-      <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-        Mis jardines — Fase 3
-      </p>
+    <div className="min-h-svh flex flex-col items-center justify-center gap-4 px-6" style={{ background: 'var(--color-bg)' }}>
+      <p className="font-medium" style={{ color: 'var(--color-text)' }}>{user?.email}</p>
       <button
         onClick={signOut}
-        className="mt-4 px-6 py-2 rounded-2xl text-sm"
-        style={{ border: '1.5px solid var(--color-primary)', color: 'var(--color-primary)' }}
+        className="px-6 py-3 rounded-2xl text-sm"
+        style={{ border: '1.5px solid var(--color-error)', color: 'var(--color-error)' }}
       >
         Cerrar sesión
       </button>
@@ -41,16 +45,19 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Públicas */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/gardens"
-          element={
-            <ProtectedRoute>
-              <GardensPage />
-            </ProtectedRoute>
-          }
-        />
+
+        {/* Protegidas */}
+        <Route path="/gardens" element={<ProtectedRoute><GardensPage /></ProtectedRoute>} />
+        <Route path="/gardens/new" element={<ProtectedRoute><CreateGardenPage /></ProtectedRoute>} />
+        <Route path="/garden/:id" element={<ProtectedRoute><GardenPage /></ProtectedRoute>} />
+        <Route path="/garden/:id/invite" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
+        <Route path="/join" element={<ProtectedRoute><JoinGardenPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+        {/* Default */}
         <Route path="/" element={<Navigate to="/gardens" replace />} />
         <Route path="*" element={<Navigate to="/gardens" replace />} />
       </Routes>
