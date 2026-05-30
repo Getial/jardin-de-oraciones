@@ -1,14 +1,26 @@
-import base64
 import jwt
+from jwt import PyJWKClient
 from django.conf import settings
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from .models import User
 
+_jwks_client = None
+
+
+def _get_jwks_client():
+    global _jwks_client
+    if _jwks_client is None:
+        _jwks_client = PyJWKClient(
+            f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json",
+            cache_keys=True,
+        )
+    return _jwks_client
+
 
 class SupabaseJWTAuthentication(BaseAuthentication):
     """
-    Valida el JWT emitido por Supabase Auth.
+    Valida el JWT emitido por Supabase Auth via JWKS (soporta RS256 y HS256).
     El frontend envía: Authorization: Bearer <supabase_access_token>
     """
 
@@ -23,42 +35,22 @@ class SupabaseJWTAuthentication(BaseAuthentication):
         return (user, token)
 
     def _decode_token(self, token):
-        secret = settings.SUPABASE_JWT_SECRET
-        if not secret:
-            raise AuthenticationFailed('SUPABASE_JWT_SECRET no configurado.')
-
-        # Supabase firma con el secreto base64-decodificado.
-        # Intentamos primero con los bytes decodificados y luego con el string raw.
-        keys_to_try = []
+        if not settings.SUPABASE_URL:
+            raise AuthenticationFailed('SUPABASE_URL no configurado.')
         try:
-            keys_to_try.append(base64.b64decode(secret))
-        except Exception:
-            pass
-        keys_to_try.append(secret)
-
-        # Obtener el algoritmo real del header del token
-        try:
-            header = jwt.get_unverified_header(token)
-            alg = header.get('alg', 'HS256')
-        except jwt.exceptions.DecodeError as e:
-            raise AuthenticationFailed(f'Token malformado: {e}')
-
-        last_error = None
-        for key in keys_to_try:
-            try:
-                return jwt.decode(
-                    token,
-                    key,
-                    algorithms=[alg],
-                    options={'verify_exp': True},
-                )
-            except jwt.ExpiredSignatureError:
-                raise AuthenticationFailed('Token expirado.')
-            except jwt.InvalidTokenError as e:
-                last_error = e
-                continue
-
-        raise AuthenticationFailed(f'Token inválido: {last_error}')
+            signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+            return jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=['RS256', 'HS256', 'ES256'],
+                options={'verify_exp': True, 'verify_aud': False},
+            )
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('Token expirado.')
+        except jwt.InvalidTokenError as e:
+            raise AuthenticationFailed(f'Token inválido: {e}')
+        except Exception as e:
+            raise AuthenticationFailed(f'Error de autenticación: {e}')
 
     def _get_or_create_user(self, payload):
         supabase_uid = payload.get('sub')

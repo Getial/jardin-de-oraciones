@@ -8,6 +8,7 @@ import GardensPage from './pages/GardensPage'
 import CreateGardenPage from './pages/CreateGardenPage'
 import JoinGardenPage from './pages/JoinGardenPage'
 import InvitePage from './pages/InvitePage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 // Placeholder hasta Fase 5
 function GardenPage() {
@@ -48,6 +49,7 @@ export default function App() {
         {/* Públicas */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protegidas */}
         <Route path="/gardens" element={<ProtectedRoute><GardensPage /></ProtectedRoute>} />

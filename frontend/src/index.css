@@ -1,25 +1,25 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* ── Colores ── */
-  --color-bg:            #F7F5EF;
-  --color-primary:       #7A8F63;
-  --color-primary-soft:  #A8B79A;
-  --color-earth:         #C7B299;
-  --color-gold:          #D9C7A2;
-  --color-text:          #2D2D2D;
-  --color-text-muted:    #6E6E6E;
-  --color-error:         #D66A5E;
-  --color-success:       #7CA26A;
-  --color-surface:       #FFFFFF;
+  --color-bg: #f7f5ef;
+  --color-primary: #7a8f63;
+  --color-primary-soft: #a8b79a;
+  --color-earth: #c7b299;
+  --color-gold: #d9c7a2;
+  --color-text: #2d2d2d;
+  --color-text-muted: #6e6e6e;
+  --color-error: #d66a5e;
+  --color-success: #7ca26a;
+  --color-surface: #ffffff;
 
   /* ── Tipografía ── */
   --font-sans: 'Inter', 'DM Sans', system-ui, sans-serif;
 
   /* ── Radios ── */
-  --radius-card:   24px;
+  --radius-card: 24px;
   --radius-button: 14px;
-  --radius-sheet:  28px;
+  --radius-sheet: 28px;
 
   /* ── Sombras ── */
   --shadow-soft: 0 2px 12px 0 rgba(45, 45, 45, 0.06);
@@ -27,7 +27,9 @@
 }
 
 /* ── Reset base ── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -41,7 +43,7 @@ html {
 }
 
 body {
-  margin: 0;
+  /* margin: 0; */
   min-height: 100svh;
   min-height: -webkit-fill-available;
 }
