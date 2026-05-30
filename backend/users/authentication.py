@@ -1,3 +1,4 @@
+import base64
 import jwt
 from django.conf import settings
 from rest_framework.authentication import BaseAuthentication
@@ -18,7 +19,6 @@ class SupabaseJWTAuthentication(BaseAuthentication):
 
         token = auth_header.split(' ', 1)[1]
         payload = self._decode_token(token)
-
         user = self._get_or_create_user(payload)
         return (user, token)
 
@@ -26,17 +26,39 @@ class SupabaseJWTAuthentication(BaseAuthentication):
         secret = settings.SUPABASE_JWT_SECRET
         if not secret:
             raise AuthenticationFailed('SUPABASE_JWT_SECRET no configurado.')
+
+        # Supabase firma con el secreto base64-decodificado.
+        # Intentamos primero con los bytes decodificados y luego con el string raw.
+        keys_to_try = []
         try:
-            return jwt.decode(
-                token,
-                secret,
-                algorithms=['HS256'],
-                options={'verify_exp': True},
-            )
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed('Token expirado.')
-        except jwt.InvalidTokenError as e:
-            raise AuthenticationFailed(f'Token inválido: {e}')
+            keys_to_try.append(base64.b64decode(secret))
+        except Exception:
+            pass
+        keys_to_try.append(secret)
+
+        # Obtener el algoritmo real del header del token
+        try:
+            header = jwt.get_unverified_header(token)
+            alg = header.get('alg', 'HS256')
+        except jwt.exceptions.DecodeError as e:
+            raise AuthenticationFailed(f'Token malformado: {e}')
+
+        last_error = None
+        for key in keys_to_try:
+            try:
+                return jwt.decode(
+                    token,
+                    key,
+                    algorithms=[alg],
+                    options={'verify_exp': True},
+                )
+            except jwt.ExpiredSignatureError:
+                raise AuthenticationFailed('Token expirado.')
+            except jwt.InvalidTokenError as e:
+                last_error = e
+                continue
+
+        raise AuthenticationFailed(f'Token inválido: {last_error}')
 
     def _get_or_create_user(self, payload):
         supabase_uid = payload.get('sub')
@@ -48,7 +70,6 @@ class SupabaseJWTAuthentication(BaseAuthentication):
             supabase_uid=supabase_uid,
             defaults={'email': email},
         )
-        # Sincronizar email si cambió en Supabase
         if user.email != email and email:
             user.email = email
             user.save(update_fields=['email'])
