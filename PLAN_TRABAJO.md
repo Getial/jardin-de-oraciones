@@ -1,7 +1,7 @@
 # Jardín de Oraciones — Plan de Trabajo
 
-**Última actualización:** 2026-05-29
-**Estado general:** 🟡 En planificación
+**Última actualización:** 2026-05-30
+**Estado general:** 🟢 En progreso — Fase 1
 
 ---
 
@@ -23,7 +23,7 @@
 
 | Fase | Nombre | Estado |
 |------|--------|--------|
-| 1 | Fundaciones y Setup | ⬜ Pendiente |
+| 1 | Fundaciones y Setup | 🟡 En progreso |
 | 2 | Autenticación | ⬜ Pendiente |
 | 3 | Jardines e Invitaciones | ⬜ Pendiente |
 | 4 | Semillas e Interacciones | ⬜ Pendiente |
@@ -38,11 +38,11 @@
 **Objetivo:** Tener la base del proyecto corriendo end-to-end en local y con deploy inicial en staging.
 
 ### Frontend
-- [ ] Scaffold React + Vite (JavaScript)
-- [ ] Configurar PWA (vite-plugin-pwa, manifest, service worker base)
-- [ ] Instalar y configurar Tailwind CSS
-- [ ] Definir design tokens (colores, tipografía, spacing, bordes)
-- [ ] Configurar ESLint + Prettier
+- [x] Scaffold React + Vite (JavaScript)
+- [x] Configurar PWA (vite-plugin-pwa, manifest, service worker base)
+- [x] Instalar y configurar Tailwind CSS v4
+- [x] Definir design tokens (colores, tipografía, spacing, bordes)
+- [x] Configurar ESLint + Prettier
 - [ ] Deploy inicial en Vercel (rama `master`)
 
 ### Backend
