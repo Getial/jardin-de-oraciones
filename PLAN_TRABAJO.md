@@ -46,17 +46,17 @@
 - [ ] Deploy inicial en Vercel (rama `master`)
 
 ### Backend
-- [ ] Scaffold Django + Django REST Framework
-- [ ] Conectar Django a Supabase PostgreSQL (DATABASE_URL)
-- [ ] Integración de Supabase Auth: middleware para validar JWT de Supabase en Django
-- [ ] Configurar variables de entorno (.env local y en Railway)
+- [x] Scaffold Django + Django REST Framework
+- [x] Conectar Django a Supabase PostgreSQL (DATABASE_URL)
+- [x] Integración de Supabase Auth: middleware para validar JWT de Supabase en Django
+- [x] Configurar variables de entorno (.env local y en Railway)
 - [ ] Deploy inicial en Railway
 
 ### Supabase
-- [ ] Crear proyecto en Supabase
-- [ ] Habilitar Auth (email/password)
-- [ ] Crear bucket en Storage para imágenes de jardines y semillas
-- [ ] Configurar Row Level Security (RLS) base
+- [ ] Crear proyecto en Supabase *(requiere cuenta — ver supabase/README.md)*
+- [ ] Habilitar Auth (email/password) *(default en Supabase)*
+- [x] Crear bucket en Storage para imágenes de jardines y semillas *(SQL listo en supabase/01_setup.sql)*
+- [x] Configurar Row Level Security (RLS) base *(SQL listo en supabase/01_setup.sql)*
 
 ---
 
