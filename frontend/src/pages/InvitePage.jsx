@@ -32,13 +32,9 @@ export default function InvitePage() {
   }
 
   const shareLink = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: 'Jardín de Oraciones', text: `Código: ${invitation.code}`, url: shareUrl })
-    } else {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
