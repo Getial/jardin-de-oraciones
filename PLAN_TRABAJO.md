@@ -1,7 +1,7 @@
 # Jardín de Oraciones — Plan de Trabajo
 
-**Última actualización:** 2026-05-30
-**Estado general:** 🟢 En progreso — Fase 3
+**Última actualización:** 2026-05-31
+**Estado general:** 🟢 En progreso — Fase 4
 
 ---
 
@@ -25,8 +25,8 @@
 |------|--------|--------|
 | 1 | Fundaciones y Setup | ✅ Completa |
 | 2 | Autenticación | ✅ Completa |
-| 3 | Jardines e Invitaciones | 🟡 En progreso |
-| 4 | Semillas e Interacciones | ⬜ Pendiente |
+| 3 | Jardines e Invitaciones | ✅ Completa |
+| 4 | Semillas e Interacciones | 🟡 En progreso |
 | 5 | Jardín Visual + Realtime | ⬜ Pendiente |
 | 6 | Notificaciones y PWA | ⬜ Pendiente |
 | 7 | Pulido y MVP Launch | ⬜ Pendiente |
@@ -50,7 +50,7 @@
 - [x] Conectar Django a Supabase PostgreSQL (DATABASE_URL)
 - [x] Integración de Supabase Auth: middleware para validar JWT de Supabase en Django
 - [x] Configurar variables de entorno (.env local y en Railway)
-- [ ] Deploy inicial en Railway *(pendiente para Fase 3)*
+- [ ] Deploy inicial en Railway *(pendiente para Fase 7)*
 
 ### Supabase
 - [x] Crear proyecto en Supabase
@@ -87,22 +87,24 @@
 **Objetivo:** Un usuario puede crear jardines, invitar personas y gestionar miembros.
 
 ### Modelos Django
-- [ ] `Garden` (nombre, tipo, descripción, privacidad, owner)
-- [ ] `GardenMembership` (usuario, jardín, rol: admin/miembro, fecha de unión)
-- [ ] `Invitation` (jardín, código, link, estado, expiración)
+- [x] `Garden` (nombre, tipo, descripción, privacidad, owner)
+- [x] `GardenMembership` (usuario, jardín, rol: admin/miembro, fecha de unión)
+- [x] `Invitation` (jardín, código, link, estado, expiración)
 
 ### Pantallas
-- [ ] Mis Jardines (lista de jardines con card: nombre, tipo, miembros, última actividad)
-- [ ] Crear Jardín (selección de tipo, nombre, descripción, imagen opcional, privacidad)
-- [ ] Invitar Miembros (generar código, link compartible, opciones: WhatsApp, correo)
-- [ ] Unirse a jardín por código/link
-- [ ] Ajustes del jardín (editar, gestionar miembros, salir)
+- [x] Mis Jardines (lista de jardines con card: nombre, tipo, miembros, última actividad)
+- [x] Crear Jardín (selección de tipo, nombre, descripción, imagen opcional, privacidad)
+- [x] Invitar Miembros (generar código, link compartible, opciones: WhatsApp, correo)
+- [x] Unirse a jardín por código/link (auto-join desde URL `?code=`)
+- [ ] Ajustes del jardín (editar, gestionar miembros, salir) *(movido a Fase 7)*
 
 ### Lógica
-- [ ] Roles: admin puede editar/invitar/eliminar; miembro puede sembrar e interactuar
-- [ ] Expiración de invitaciones (configurable, default 7 días)
-- [ ] Edge case: usuario que sale del jardín
-- [ ] Edge case: eliminar jardín (solo admin)
+- [x] Roles: admin puede editar/invitar/eliminar; miembro puede sembrar e interactuar
+- [x] Expiración de invitaciones (configurable, default 7 días)
+- [x] Edge case: usuario que sale del jardín
+- [x] Edge case: eliminar jardín (solo admin)
+- [x] JWT RS256 validado via JWKS (`PyJWKClient` → Supabase JWKS endpoint)
+- [x] Pantalla de recuperación de contraseña (`/reset-password`) con flujo `PASSWORD_RECOVERY`
 
 ---
 

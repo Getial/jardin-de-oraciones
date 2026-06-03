@@ -55,15 +55,23 @@ class SupabaseJWTAuthentication(BaseAuthentication):
     def _get_or_create_user(self, payload):
         supabase_uid = payload.get('sub')
         email = payload.get('email', '')
+        display_name = (payload.get('user_metadata') or {}).get('display_name', '')
         if not supabase_uid:
             raise AuthenticationFailed('Token sin sub (uid).')
 
-        user, _ = User.objects.get_or_create(
+        user, created = User.objects.get_or_create(
             supabase_uid=supabase_uid,
-            defaults={'email': email},
+            defaults={'email': email, 'display_name': display_name},
         )
-        if user.email != email and email:
-            user.email = email
-            user.save(update_fields=['email'])
+        if not created:
+            fields = []
+            if user.email != email and email:
+                user.email = email
+                fields.append('email')
+            if display_name and user.display_name != display_name:
+                user.display_name = display_name
+                fields.append('display_name')
+            if fields:
+                user.save(update_fields=fields)
 
         return user

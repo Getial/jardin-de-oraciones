@@ -3,14 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import useGardenStore from '../stores/gardenStore'
 import BottomNav from '../components/layout/BottomNav'
-
-const GARDEN_META = {
-  personal:      { emoji: '🌱', label: 'Personal',          bg: '#EDF2E8' },
-  couple:        { emoji: '❤️',  label: 'Pareja',            bg: '#FAEDEE' },
-  family:        { emoji: '👨‍👩‍👧', label: 'Familia',           bg: '#FDF3E7' },
-  friends:       { emoji: '🫂',  label: 'Amigos',            bg: '#EBF0F8' },
-  prayer_group:  { emoji: '🙏',  label: 'Grupo de oración',  bg: '#F3EDF8' },
-}
+import { GARDEN_META } from '../lib/constants'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
