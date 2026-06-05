@@ -15,11 +15,12 @@ export const SEED_TYPES = [
 ]
 
 const GROWTH_STAGES = [
-  { max: 0,        emoji: '🌱',   label: 'Semilla' },
-  { max: 3,        emoji: '🌿',   label: 'Brote' },
-  { max: 8,        emoji: '🌸',   label: 'Floreciendo' },
-  { max: 15,       emoji: '🌳',   label: 'Árbol' },
-  { max: Infinity, emoji: '🌳✨', label: 'Árbol especial' },
+  { max: 0,        stage: 0, label: 'Tierra' },
+  { max: 2,        stage: 1, label: 'Semilla' },
+  { max: 5,        stage: 2, label: 'Brote' },
+  { max: 10,       stage: 3, label: 'Planta' },
+  { max: 20,       stage: 4, label: 'Flor' },
+  { max: Infinity, stage: 5, label: 'Árbol' },
 ]
 
 export function getGrowthStage(prayCount) {

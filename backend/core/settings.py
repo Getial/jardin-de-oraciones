@@ -9,9 +9,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-insecure-key-change-in-production')
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = True
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['*'] 
+# if DEBUG else os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1', '192.168.110.142').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -92,10 +93,29 @@ REST_FRAMEWORK = {
 }
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173',
-).split(',')
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8080',
+    'http://127.0.0.1:9000',
+    'http://192.168.110.142',
+    'http://192.168.110.136'
+]
+
+ALLOWED_HOSTS = ['*', '127.0.0.1', '10.0.2.2', '192.168.101.2', 'http://192.168.110.142', 'http://192.168.110.136']
+
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+# if DEBUG:
+#     CORS_ALLOW_ALL_ORIGINS = True
+# else:
+#     CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 

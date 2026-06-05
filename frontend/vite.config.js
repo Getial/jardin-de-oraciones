@@ -47,4 +47,17 @@ export default defineConfig({
   resolve: {
     alias: { '@': '/src' },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@supabase')) return 'supabase'
+            if (id.includes('react-router')) return 'react'
+            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react'
+          }
+        },
+      },
+    },
+  },
 })

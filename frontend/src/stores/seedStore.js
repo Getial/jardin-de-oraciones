@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { api } from '../services/api'
+import { supabase } from '../lib/supabase'
 
-const useSeedStore = create((set) => ({
+const useSeedStore = create((set, get) => ({
   seeds: [],
   loading: false,
   error: null,
@@ -45,6 +46,28 @@ const useSeedStore = create((set) => ({
   deleteSeed: async (seedId) => {
     await api.delete(`/api/seeds/${seedId}/`)
     set((state) => ({ seeds: state.seeds.filter((seed) => seed.id !== seedId) }))
+  },
+
+  // Suscripción Realtime — retorna función para cancelar
+  subscribeToGarden: (gardenId) => {
+    const channel = supabase
+      .channel(`garden-seeds-${gardenId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'seeds_seed',
+          filter: `garden_id=eq.${gardenId}`,
+        },
+        () => {
+          // Re-fetch para obtener datos serializados correctos (has_prayed, author_name…)
+          get().fetchSeeds(gardenId)
+        }
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
   },
 
   clearSeeds: () => set({ seeds: [], error: null }),

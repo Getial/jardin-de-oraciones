@@ -1,7 +1,7 @@
 # Jardín de Oraciones — Plan de Trabajo
 
-**Última actualización:** 2026-05-31
-**Estado general:** 🟢 En progreso — Fase 4
+**Última actualización:** 2026-06-04
+**Estado general:** 🟢 En progreso — Fase 5
 
 ---
 
@@ -26,8 +26,8 @@
 | 1 | Fundaciones y Setup | ✅ Completa |
 | 2 | Autenticación | ✅ Completa |
 | 3 | Jardines e Invitaciones | ✅ Completa |
-| 4 | Semillas e Interacciones | 🟡 En progreso |
-| 5 | Jardín Visual + Realtime | ⬜ Pendiente |
+| 4 | Semillas e Interacciones | ✅ Completa |
+| 5 | Jardín Visual + Realtime | 🟡 En progreso |
 | 6 | Notificaciones y PWA | ⬜ Pendiente |
 | 7 | Pulido y MVP Launch | ⬜ Pendiente |
 
@@ -113,23 +113,23 @@
 **Objetivo:** Núcleo funcional — sembrar, orar (regar), y ver historial espiritual.
 
 ### Modelos Django
-- [ ] `Seed` (jardín, tipo, contenido, autor, privacidad, estado, fecha)
+- [x] `Seed` (jardín, tipo, contenido, autor, privacidad, estado, fecha)
   - Tipos: `prayer`, `message`, `verse`, `gratitude`, `special_moment`
   - Estados: `active`, `answered`, `archived`
-- [ ] `SeedInteraction` (semilla, usuario, tipo: `prayed`, `liked`, `commented`)
-- [ ] `SeedEvent` (semilla, descripción del evento, fecha) — historial espiritual
+- [x] `SeedInteraction` (semilla, usuario, tipo: `prayed`)
+- [x] `SeedEvent` (semilla, descripción del evento, fecha) — historial espiritual
 
 ### Pantallas
-- [ ] Bottom sheet "Sembrar" (selección de tipo + form según tipo)
-- [ ] Detalle de semilla (contenido + historial de eventos)
-- [ ] Acción "Oré por esta petición 🙏" (regar)
-- [ ] Marcar oración como respondida ✨
-- [ ] Semillas privadas vs compartidas
+- [x] Bottom sheet "Sembrar" (selección de tipo + form según tipo)
+- [x] Detalle de semilla (contenido + historial de eventos)
+- [x] Acción "Oré por esta petición 🙏" (toggle — regar/desregar)
+- [x] Marcar oración como respondida ✨
+- [x] Semillas privadas vs compartidas
 
 ### Lógica
-- [ ] Historial espiritual por semilla (timeline de eventos)
-- [ ] Sistema de permisos: ¿quién puede borrar semillas?
-- [ ] Edge case: conflictos de edición simultánea
+- [x] Historial espiritual por semilla (timeline de eventos)
+- [x] Sistema de permisos: autor o admin puede borrar
+- [x] `display_name` sincronizado desde JWT Supabase en cada request
 
 ---
 
@@ -138,31 +138,30 @@
 **Objetivo:** La pantalla principal del jardín es inmersiva, viva y se actualiza en tiempo real.
 
 ### Sistema de crecimiento
-- [ ] Definir fórmula de crecimiento por semilla (tiempo + interacciones + actividad)
-- [ ] Estados: `tierra` → `semilla` → `brote` → `planta` → `flor` → `árbol` → `árbol especial`
-- [ ] Lógica en Django para calcular y actualizar el estado de crecimiento
+- [x] Fórmula basada en `pray_count`: 0 → tierra, 1-2 → semilla, 3-5 → brote, 6-10 → planta, 11-20 → flor, 21+ → árbol
+- [x] Estados calculados en frontend (`getGrowthStage`)
 
 ### Pantalla jardín (Home)
-- [ ] Layout inmersivo (jardín ocupa casi toda la pantalla)
-- [ ] Header: nombre del jardín, participantes, notificaciones
-- [ ] FAB "+ Sembrar"
-- [ ] Bottom nav: Jardines / Ajustes
-- [ ] Plantas como elementos tocables (CSS/SVG animado por estado)
-- [ ] Bottom sheet al tocar planta (info + historial + acciones)
+- [x] Layout inmersivo (fondo jardín día/noche, grid 2 columnas)
+- [x] Header flotante con nombre, tipo, miembros
+- [x] FAB "+ Sembrar"
+- [x] Bottom nav: Jardines / Ajustes
+- [x] Plantas como elementos tocables (SVG animado por estado)
+- [x] Bottom sheet al tocar planta (info + historial + acciones)
 
 ### Animaciones placeholder (CSS/SVG)
-- [ ] Estado `tierra vacía` — espacio disponible
-- [ ] Estado `semilla` — punto pequeño
-- [ ] Estado `brote 🌱` — animación suave de aparición
-- [ ] Estado `planta 🌿` — movimiento de hojas (CSS keyframes)
-- [ ] Estado `flor 🌸` — pétalos con ligera oscilación
-- [ ] Estado `árbol 🌳` — presencia estable y cálida
-- [ ] Animación de "regar" (agua cae, planta se mueve)
-- [ ] Modo nocturno automático (por hora del sistema)
+- [x] Estado `tierra` — montículo de tierra con semilla
+- [x] Estado `semilla` — brote pequeño emergiendo
+- [x] Estado `brote` — tallo con 2 hojas, animación sway
+- [x] Estado `planta` — tallo alto con 4 hojas, sway
+- [x] Estado `flor` — planta con pétalos, sway + bloom
+- [x] Estado `árbol` — árbol con copa completa + destellos
+- [x] Modo nocturno automático (por hora del sistema, activa a las 20h)
 
 ### Realtime
-- [ ] Suscripción a Supabase Realtime: cuando alguien siembra o riega → jardín actualiza en vivo
-- [ ] Indicador de quién está en el jardín en este momento (presencia)
+- [x] Suscripción Supabase Realtime a `seeds_seed` filtrada por `garden_id`
+- [x] `02_realtime.sql` ejecutado (habilitar publicación de tablas)
+- [ ] Indicador de presencia (v2)
 
 ---
 
