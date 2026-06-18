@@ -4,13 +4,28 @@ import { api } from '../../services/api'
 import { SEED_TYPES, timeAgo } from '../../lib/constants'
 
 export default function SeedDetailSheet({ seed, currentUserId, onClose }) {
-  const { answerSeed, deleteSeed } = useSeedStore()
+  const { praySeed, answerSeed, deleteSeed } = useSeedStore()
   const [events, setEvents] = useState([])
   const [actionLoading, setActionLoading] = useState(false)
+  const [prayLoading, setPrayLoading] = useState(false)
+  const [prayed, setPrayed] = useState(seed.has_prayed)
+  const [prayCount, setPrayCount] = useState(seed.pray_count)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const isAuthor = seed.author_id === currentUserId
   const seedType = SEED_TYPES.find((t) => t.key === seed.type) || SEED_TYPES[0]
+
+  const handlePray = async () => {
+    if (prayLoading) return
+    setPrayLoading(true)
+    try {
+      const result = await praySeed(seed.id)
+      setPrayed(result.prayed)
+      setPrayCount(result.pray_count)
+    } finally {
+      setPrayLoading(false)
+    }
+  }
 
   useEffect(() => {
     api.get(`/api/seeds/${seed.id}/`)
@@ -99,10 +114,24 @@ export default function SeedDetailSheet({ seed, currentUserId, onClose }) {
           {seed.content}
         </p>
 
-        <p className="text-xs mb-6" style={{ color: 'var(--color-text-muted)' }}>
+        <p className="text-xs mb-5" style={{ color: 'var(--color-text-muted)' }}>
           {seed.author_name} · {timeAgo(seed.created_at)}
-          {seed.pray_count > 0 && ` · ${seed.pray_count} ${seed.pray_count === 1 ? 'oración' : 'oraciones'}`}
+          {prayCount > 0 && ` · ${prayCount} ${prayCount === 1 ? 'oración' : 'oraciones'}`}
         </p>
+
+        {/* Orar (regar) */}
+        <button
+          onClick={handlePray}
+          disabled={prayLoading}
+          className="w-full py-3.5 rounded-2xl font-medium text-sm mb-6 disabled:opacity-60 transition-colors"
+          style={{
+            background: prayed ? 'var(--color-primary)' : 'var(--color-bg)',
+            color: prayed ? 'white' : 'var(--color-primary)',
+            border: prayed ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-primary)',
+          }}
+        >
+          {prayed ? '🙏 Oraste por esta semilla' : '🙏 Orar por esta semilla'}
+        </button>
 
         {/* Events timeline */}
         {events.length > 0 && (

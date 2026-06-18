@@ -1,73 +1,102 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import useGardenStore from '../stores/gardenStore'
 import useSeedStore from '../stores/seedStore'
 import useAuthStore from '../stores/authStore'
-import BottomNav from '../components/layout/BottomNav'
 import PlantSVG from '../components/garden/PlantSVG'
 import SeedBottomSheet from '../components/seeds/SeedBottomSheet'
 import SeedDetailSheet from '../components/seeds/SeedDetailSheet'
 import { GARDEN_META, SEED_TYPES, getGrowthStage } from '../lib/constants'
+import fondoDia from '../assets/fondo_jardin.png'
+import fondoAmanecer from '../assets/fondo_jardin_amanecer.png'
+import fondoAtardecer from '../assets/fondo_jardin_atardecer.png'
+import fondoNocturno from '../assets/fondo_jardin_nocturno.png'
 
-function useNightMode() {
-  const hour = new Date().getHours()
-  return hour < 6 || hour >= 20
+const BACKGROUNDS = {
+  amanecer: fondoAmanecer,
+  dia: fondoDia,
+  atardecer: fondoAtardecer,
+  nocturno: fondoNocturno,
 }
 
-function PlantCell({ seed, onTap, night }) {
-  const { praySeed } = useSeedStore()
-  const [prayLoading, setPrayLoading] = useState(false)
+function getTimeOfDay() {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 8) return 'amanecer'
+  if (h >= 8 && h < 17) return 'dia'
+  if (h >= 17 && h < 19) return 'atardecer'
+  return 'nocturno'
+}
+
+const PERIOD_LABELS = {
+  amanecer: '🌅',
+  dia: '☀️',
+  atardecer: '🌇',
+  nocturno: '🌙',
+}
+
+// Hash estable a partir del id → dos pseudo-aleatorios en [0,1)
+function seedPosition(id) {
+  let h = 2166136261
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  const r1 = ((h >>> 0) % 1000) / 1000
+  const r2 = (((h >>> 10) >>> 0) % 1000) / 1000
+
+  // Zona de pradera: vertical 52%–82%
+  const top = 52 + r1 * 30
+  // Dos franjas de pasto a los lados del camino central (evita el sendero)
+  const onLeft = r2 < 0.5
+  const t = onLeft ? r2 * 2 : (r2 - 0.5) * 2
+  const left = onLeft ? 12 + t * 24 : 60 + t * 28
+  // Perspectiva: arriba (lejos) más pequeño, abajo (cerca) más grande
+  const depth = (top - 52) / 30
+  const scale = 0.7 + depth * 0.45
+  return { top, left, scale }
+}
+
+function Plant({ seed, night, onTap }) {
   const stage = getGrowthStage(seed.pray_count)
   const seedType = SEED_TYPES.find((t) => t.key === seed.type) || SEED_TYPES[0]
-
-  const handlePray = async (e) => {
-    e.stopPropagation()
-    if (prayLoading) return
-    setPrayLoading(true)
-    try { await praySeed(seed.id) } finally { setPrayLoading(false) }
-  }
+  const { top, left, scale } = seedPosition(seed.id)
+  const width = `clamp(40px, 13vw, 60px)`
 
   return (
-    <div
+    <button
       onClick={onTap}
-      role="button"
-      className="relative rounded-[20px] p-3 flex flex-col items-center cursor-pointer active:scale-[0.97] transition-transform select-none"
+      className="absolute flex flex-col items-center transition-transform active:scale-95"
       style={{
-        background: night ? 'rgba(20,35,15,0.65)' : 'rgba(255,255,255,0.72)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
+        top: `${top}%`,
+        left: `${left}%`,
+        transform: `translate(-50%, -100%) scale(${scale})`,
+        transformOrigin: 'bottom center',
+        zIndex: Math.round(top),
+        // pequeña sombra de contacto en el pasto
+        filter: 'drop-shadow(0 3px 3px rgba(40,50,20,0.25))',
       }}
+      aria-label={`${seedType.label}: ${seed.content.slice(0, 40)}`}
     >
-      {seed.state === 'answered' && (
-        <span className="absolute top-2 left-2 text-sm">✨</span>
-      )}
-      {seed.privacy === 'private' && (
-        <span className="absolute top-2 right-2 text-xs" style={{ color: night ? '#a0b890' : '#7a8f63' }}>🔒</span>
-      )}
-
-      <div className="w-full">
+      <span style={{ width, display: 'block' }}>
         <PlantSVG stage={stage.stage} night={night} />
-      </div>
+      </span>
 
-      <div className="w-full flex items-center justify-between mt-1">
-        <span className="text-base leading-none">{seedType.emoji}</span>
-        <button
-          onClick={handlePray}
-          disabled={prayLoading}
-          className="flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium disabled:opacity-50 transition-colors"
+      {/* Badges */}
+      {(seed.state === 'answered' || seed.pray_count > 0) && (
+        <span
+          className="mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none flex items-center gap-0.5"
           style={{
-            background: seed.has_prayed
-              ? (night ? '#3a6030' : '#7a8f63')
-              : (night ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'),
-            color: seed.has_prayed
-              ? 'white'
-              : (night ? '#90c070' : '#5a7040'),
+            background: night ? 'rgba(8,14,6,0.7)' : 'rgba(255,255,255,0.85)',
+            color: night ? '#c8e0a8' : '#5a7040',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
           }}
         >
-          🙏{seed.pray_count > 0 && <span>{seed.pray_count}</span>}
-        </button>
-      </div>
-    </div>
+          {seed.state === 'answered' ? '✨' : '🙏'}
+          {seed.pray_count > 0 && seed.pray_count}
+        </span>
+      )}
+    </button>
   )
 }
 
@@ -77,7 +106,19 @@ export default function GardenDetailPage() {
   const { gardens, fetchGardens } = useGardenStore()
   const { seeds, loading, fetchSeeds, clearSeeds, subscribeToGarden } = useSeedStore()
   const { user } = useAuthStore()
-  const night = useNightMode()
+  const [manualPeriod, setManualPeriod] = useState(null)
+  const [showDevSelector, setShowDevSelector] = useState(false)
+  const longPressTimer = useRef(null)
+  const period = manualPeriod || getTimeOfDay()
+  const night = period === 'nocturno'
+
+  // Long-press sobre el nombre del jardín: muestra/oculta el selector de fondos (dev)
+  const startLongPress = () => {
+    longPressTimer.current = setTimeout(() => setShowDevSelector((s) => !s), 1700)
+  }
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+  }
 
   const garden = gardens.find((g) => g.id === id)
   const [gardenLoading, setGardenLoading] = useState(!garden)
@@ -98,10 +139,7 @@ export default function GardenDetailPage() {
 
   if (gardenLoading) {
     return (
-      <div
-        className="min-h-svh flex items-center justify-center"
-        style={{ background: night ? '#0a0f06' : '#d4e8b8' }}
-      >
+      <div className="min-h-svh flex items-center justify-center" style={{ background: '#cce8a8' }}>
         <span className="text-5xl animate-pulse">🌱</span>
       </div>
     )
@@ -116,41 +154,52 @@ export default function GardenDetailPage() {
   const activeSeeds = seeds.filter((s) => s.state !== 'archived')
   const currentUserId = user?.id
 
-  const dayBg = 'linear-gradient(180deg, #b8d890 0%, #cce8a8 20%, #dff0cc 55%, #ede5cc 100%)'
-  const nightBg = 'linear-gradient(180deg, #06080e 0%, #0a1206 35%, #0f0e06 100%)'
-
-  const headerBg = night ? 'rgba(8,14,6,0.70)' : 'rgba(255,255,255,0.72)'
-  const textColor = night ? '#c8e0a8' : 'var(--color-text)'
-  const mutedColor = night ? '#78a060' : 'var(--color-text-muted)'
-  const btnBg     = night ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)'
-
   return (
-    <div
-      className="min-h-svh flex flex-col pb-24"
-      style={{ background: night ? nightBg : dayBg }}
-    >
+    <div className="relative min-h-svh overflow-hidden">
+      {/* Fondo del jardín según la hora del día */}
+      <div
+        className="fixed inset-0"
+        style={{
+          backgroundImage: `url(${BACKGROUNDS[period]})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'bottom center',
+        }}
+      />
+
       {/* Header flotante */}
-      <header className="px-4 pt-12 pb-3">
+      <header className="relative z-20 px-4 pt-6 pb-3">
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: headerBg, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
+          style={{
+            background: night ? 'rgba(8,14,6,0.55)' : 'rgba(255,255,255,0.55)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+          }}
         >
           <button
             onClick={() => navigate('/gardens')}
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: btnBg }}
+            style={{ background: night ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)' }}
           >
-            <span style={{ color: textColor }}>←</span>
+            <span style={{ color: night ? '#e8f0d8' : '#2d2d2d' }}>←</span>
           </button>
 
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0 select-none"
+            onPointerDown={startLongPress}
+            onPointerUp={cancelLongPress}
+            onPointerLeave={cancelLongPress}
+          >
             <div className="flex items-center gap-1.5">
               <span className="text-lg">{meta.emoji}</span>
-              <h1 className="text-base font-semibold truncate" style={{ color: textColor }}>
+              <h1
+                className="text-base font-semibold truncate"
+                style={{ color: night ? '#e8f0d8' : '#2d2d2d' }}
+              >
                 {garden.name}
               </h1>
             </div>
-            <p className="text-xs" style={{ color: mutedColor }}>
+            <p className="text-xs" style={{ color: night ? '#a8c088' : '#4a5a3a' }}>
               {garden.member_count} {garden.member_count === 1 ? 'miembro' : 'miembros'}
               {activeSeeds.length > 0 && ` · ${activeSeeds.length} semillas`}
             </p>
@@ -159,7 +208,10 @@ export default function GardenDetailPage() {
           <button
             onClick={() => navigate(`/garden/${id}/invite`)}
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm"
-            style={{ background: btnBg, color: textColor }}
+            style={{
+              background: night ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
+              color: night ? '#e8f0d8' : '#2d2d2d',
+            }}
             title="Invitar"
           >
             +👤
@@ -167,61 +219,94 @@ export default function GardenDetailPage() {
         </div>
       </header>
 
-      {/* Jardín */}
-      <main className="flex-1 px-4 pt-2">
-        {loading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="rounded-[20px] animate-pulse"
-                style={{
-                  aspectRatio: '3/4',
-                  background: night ? 'rgba(20,35,15,0.4)' : 'rgba(255,255,255,0.5)',
-                }}
-              />
-            ))}
-          </div>
-        ) : activeSeeds.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-5 text-center">
-            <div className="w-32 mx-auto opacity-80">
-              <PlantSVG stage={0} night={night} />
-            </div>
-            <p className="text-sm max-w-xs" style={{ color: mutedColor }}>
-              El jardín está vacío. Siembra una oración, versículo o mensaje para comenzar.
-            </p>
+      {/* Selector de hora del día (oculto — long-press en el nombre del jardín para mostrarlo) */}
+      {showDevSelector && (
+        <div className="relative z-20 px-4 pb-2 flex justify-center gap-1.5">
+          {Object.entries(PERIOD_LABELS).map(([key, emoji]) => (
             <button
-              onClick={() => setShowCreateSheet(true)}
-              className="px-6 py-3 rounded-2xl text-white text-sm font-medium"
-              style={{ background: 'var(--color-primary)' }}
+              key={key}
+              onClick={() => setManualPeriod(key)}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-transform active:scale-90"
+              style={{
+                background:
+                  period === key
+                    ? 'rgba(122,143,99,0.9)'
+                    : night
+                      ? 'rgba(8,14,6,0.5)'
+                      : 'rgba(255,255,255,0.55)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                outline: period === key ? '2px solid rgba(255,255,255,0.7)' : 'none',
+              }}
+              title={key}
             >
-              🌱 Sembrar algo
+              {emoji}
             </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {activeSeeds.map((seed) => (
-              <PlantCell
-                key={seed.id}
-                seed={seed}
-                night={night}
-                onTap={() => setSelectedSeed(seed)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+          ))}
+          <button
+            onClick={() => setManualPeriod(null)}
+            className="px-3 h-9 rounded-xl flex items-center justify-center text-xs font-medium transition-transform active:scale-90"
+            style={{
+              background:
+                manualPeriod === null
+                  ? 'rgba(122,143,99,0.9)'
+                  : night
+                    ? 'rgba(8,14,6,0.5)'
+                    : 'rgba(255,255,255,0.55)',
+              color: manualPeriod === null ? 'white' : night ? '#e8f0d8' : '#2d2d2d',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+            title="Automático según la hora"
+          >
+            Auto
+          </button>
+        </div>
+      )}
+
+      {/* Plantas dispersas en la pradera */}
+      <div className="absolute inset-0 z-10">
+        {!loading &&
+          activeSeeds.map((seed) => (
+            <Plant key={seed.id} seed={seed} night={night} onTap={() => setSelectedSeed(seed)} />
+          ))}
+      </div>
+
+      {/* Estado vacío */}
+      {!loading && activeSeeds.length === 0 && (
+        <div
+          className="absolute inset-x-0 z-20 flex flex-col items-center text-center px-8"
+          style={{ top: '58%' }}
+        >
+          <p
+            className="text-sm max-w-xs mb-5 px-4 py-2 rounded-2xl"
+            style={{
+              color: night ? '#e8f0d8' : '#2d2d2d',
+              background: night ? 'rgba(8,14,6,0.55)' : 'rgba(255,255,255,0.6)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >
+            El jardín está vacío. Siembra una oración, versículo o mensaje para comenzar.
+          </p>
+          <button
+            onClick={() => setShowCreateSheet(true)}
+            className="px-6 py-3 rounded-2xl text-white text-sm font-medium shadow-lg"
+            style={{ background: 'var(--color-primary)' }}
+          >
+            🌱 Sembrar algo
+          </button>
+        </div>
+      )}
 
       {/* FAB */}
       {activeSeeds.length > 0 && (
         <button
           onClick={() => setShowCreateSheet(true)}
-          className="fixed bottom-24 right-5 w-14 h-14 rounded-full text-white text-2xl flex items-center justify-center transition-transform active:scale-95"
+          className="fixed bottom-8 right-5 z-20 w-14 h-14 rounded-full text-white text-2xl flex items-center justify-center transition-transform active:scale-95"
           style={{
             background: 'var(--color-primary)',
-            boxShadow: night
-              ? '0 4px 20px rgba(90,160,50,0.4)'
-              : '0 4px 16px rgba(122,143,99,0.45)',
+            boxShadow: '0 4px 16px rgba(122,143,99,0.55)',
           }}
           aria-label="Sembrar"
         >
@@ -240,8 +325,6 @@ export default function GardenDetailPage() {
           onClose={() => setSelectedSeed(null)}
         />
       )}
-
-      <BottomNav />
     </div>
   )
 }
