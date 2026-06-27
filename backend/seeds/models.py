@@ -48,7 +48,10 @@ class Seed(models.Model):
     content = models.TextField()
     privacy = models.CharField(max_length=10, choices=PRIVACY, default=PRIVACY_SHARED)
     state = models.CharField(max_length=10, choices=STATES, default=STATE_ACTIVE)
-    pray_count = models.PositiveIntegerField(default=0)
+    pray_count = models.PositiveIntegerField(default=0)          # total de oraciones (incluye repetidas)
+    growth_points = models.PositiveIntegerField(default=0)       # crecimiento acumulado (nunca baja)
+    current_streak = models.PositiveIntegerField(default=0)      # días consecutivos con oración (por semilla)
+    last_pray_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -77,7 +80,7 @@ class SeedInteraction(models.Model):
 
     class Meta:
         db_table = 'seeds_seedinteraction'
-        unique_together = ('seed', 'user', 'type')
+        # Sin unique_together: cada oración (máx. 1/día/usuario) queda como registro en el log
 
     def __str__(self):
         return f'{self.user} oró → {self.seed}'

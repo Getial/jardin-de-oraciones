@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Seed, SeedInteraction, SeedEvent
 
 
@@ -18,30 +19,36 @@ class SeedEventSerializer(serializers.ModelSerializer):
 class SeedSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     author_id = serializers.SerializerMethodField()
-    has_prayed = serializers.SerializerMethodField()
+    prayed_today = serializers.SerializerMethodField()
 
     class Meta:
         model = Seed
         fields = [
             'id', 'garden', 'type', 'title', 'content',
-            'privacy', 'state', 'pray_count',
-            'author_id', 'author_name', 'has_prayed',
+            'privacy', 'state', 'pray_count', 'growth_points', 'current_streak',
+            'author_id', 'author_name', 'prayed_today',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'pray_count', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'pray_count', 'growth_points', 'current_streak',
+            'created_at', 'updated_at',
+        ]
 
     def get_author_name(self, obj):
         return obj.author.display_name or obj.author.email
 
     def get_author_id(self, obj):
-        return str(obj.author.id)
+        # Usamos el UID de Supabase porque es el que el frontend tiene en sesión
+        return str(obj.author.supabase_uid)
 
-    def get_has_prayed(self, obj):
+    def get_prayed_today(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
         return obj.interactions.filter(
-            user=request.user, type=SeedInteraction.TYPE_PRAYED
+            user=request.user,
+            type=SeedInteraction.TYPE_PRAYED,
+            created_at__date=timezone.localdate(),
         ).exists()
 
 

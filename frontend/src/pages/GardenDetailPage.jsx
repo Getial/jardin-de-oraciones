@@ -1,12 +1,13 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import useGardenStore from '../stores/gardenStore'
 import useSeedStore from '../stores/seedStore'
 import useAuthStore from '../stores/authStore'
 import PlantSVG from '../components/garden/PlantSVG'
+import Fireflies from '../components/garden/Fireflies'
 import SeedBottomSheet from '../components/seeds/SeedBottomSheet'
 import SeedDetailSheet from '../components/seeds/SeedDetailSheet'
-import { GARDEN_META, SEED_TYPES, getGrowthStage } from '../lib/constants'
+import { GARDEN_META, SEED_TYPES, getPlantStage } from '../lib/constants'
 import fondoDia from '../assets/fondo_jardin.png'
 import fondoAmanecer from '../assets/fondo_jardin_amanecer.png'
 import fondoAtardecer from '../assets/fondo_jardin_atardecer.png'
@@ -34,33 +35,80 @@ const PERIOD_LABELS = {
   nocturno: '🌙',
 }
 
-// Hash estable a partir del id → dos pseudo-aleatorios en [0,1)
-function seedPosition(id) {
+// Hash estable (FNV-1a) a partir del id
+function hashId(id) {
   let h = 2166136261
   for (let i = 0; i < id.length; i++) {
     h ^= id.charCodeAt(i)
     h = Math.imul(h, 16777619)
   }
-  const r1 = ((h >>> 0) % 1000) / 1000
-  const r2 = (((h >>> 10) >>> 0) % 1000) / 1000
+  return h >>> 0
+}
 
+const clamp = (v, min, max) => Math.min(Math.max(v, min), max)
+
+// Posición base a partir del hash del id (sin resolver colisiones)
+function basePosition(id) {
+  const h = hashId(id)
+  const r1 = (h % 1000) / 1000
+  const r2 = ((h >>> 10) % 1000) / 1000
   // Zona de pradera: vertical 52%–82%
   const top = 52 + r1 * 30
   // Dos franjas de pasto a los lados del camino central (evita el sendero)
   const onLeft = r2 < 0.5
   const t = onLeft ? r2 * 2 : (r2 - 0.5) * 2
   const left = onLeft ? 12 + t * 24 : 60 + t * 28
-  // Perspectiva: arriba (lejos) más pequeño, abajo (cerca) más grande
-  const depth = (top - 52) / 30
-  const scale = 0.7 + depth * 0.45
-  return { top, left, scale }
+  return { top, left }
 }
 
-function Plant({ seed, night, onTap }) {
-  const stage = getGrowthStage(seed.pray_count)
+const scaleForTop = (top) => 0.7 + ((top - 52) / 30) * 0.45
+
+// Distancia "elíptica" (las plantas son más anchas que altas en %)
+function tooClose(a, b) {
+  const dl = (a.left - b.left) / 15
+  const dt = (a.top - b.top) / 9
+  return dl * dl + dt * dt < 1
+}
+
+// Calcula posiciones evitando solapamientos. Procesa las semillas de la más
+// antigua a la más nueva: las antiguas conservan su lugar y cada nueva, si cae
+// muy cerca de otra, se desplaza por una espiral determinista hasta un hueco.
+function computeLayout(seeds) {
+  const ordered = [...seeds].sort(
+    (a, b) => new Date(a.created_at) - new Date(b.created_at)
+  )
+  const placed = []
+  const layout = {}
+  for (const s of ordered) {
+    const base = basePosition(s.id)
+    const a0 = (hashId(s.id) % 360) * (Math.PI / 180)
+    let pos = base
+    let tries = 0
+    while (tries < 40 && placed.some((p) => tooClose(p, pos))) {
+      const r = 4 + tries * 1.6
+      const ang = a0 + tries * 2.399963 // ángulo áureo
+      pos = {
+        top: clamp(base.top + Math.sin(ang) * r * 0.65, 52, 82),
+        left: clamp(base.left + Math.cos(ang) * r, 8, 90),
+      }
+      tries++
+    }
+    placed.push(pos)
+    layout[s.id] = { top: pos.top, left: pos.left, scale: scaleForTop(pos.top) }
+  }
+  return layout
+}
+
+function Plant({ seed, night, onTap, watering, pos, justSown }) {
   const seedType = SEED_TYPES.find((t) => t.key === seed.type) || SEED_TYPES[0]
-  const { top, left, scale } = seedPosition(seed.id)
+  const { top, left, scale } = pos
   const width = `clamp(40px, 13vw, 60px)`
+  const showBadge = seed.state === 'answered' || seed.pray_count > 0
+
+  const isWatering = watering?.seedId === seed.id
+  const phase = isWatering ? watering.phase : null
+  // Durante la lluvia se sostiene la etapa anterior; al crecer (pop) se muestra la nueva
+  const stage = phase === 'rain' ? watering.fromStage : getPlantStage(seed)
 
   return (
     <button
@@ -71,29 +119,81 @@ function Plant({ seed, night, onTap }) {
         left: `${left}%`,
         transform: `translate(-50%, -100%) scale(${scale})`,
         transformOrigin: 'bottom center',
-        zIndex: Math.round(top),
+        zIndex: isWatering ? 100 : Math.round(top),
         // pequeña sombra de contacto en el pasto
         filter: 'drop-shadow(0 3px 3px rgba(40,50,20,0.25))',
+        // aparición suave al cargar / al sembrarse
+        animation: 'plantAppear 0.5s ease-out both',
       }}
       aria-label={`${seedType.label}: ${seed.content.slice(0, 40)}`}
     >
-      <span style={{ width, display: 'block' }}>
-        <PlantSVG stage={stage.stage} night={night} />
+      {/* Nube + lluvia mientras se riega */}
+      {isWatering && phase === 'rain' && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{ top: '-30px', width: '64px', zIndex: 5 }}
+        >
+          <div
+            className="text-center leading-none"
+            style={{ fontSize: '24px', animation: 'cloudIn 0.3s ease-out', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.15))' }}
+          >
+            ☁️
+          </div>
+          <div className="relative" style={{ height: '28px' }}>
+            {[0, 1, 2, 3].map((i) => (
+              <span
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: `${24 + i * 17}%`,
+                  top: 0,
+                  width: '2.5px',
+                  height: '9px',
+                  borderRadius: '2px',
+                  background: 'rgba(96,156,224,0.85)',
+                  animation: `rainDrop 0.7s linear ${i * 0.15}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <span
+        style={{
+          width,
+          display: 'block',
+          transformOrigin: 'bottom center',
+          animation:
+            isWatering && phase === 'grow'
+              ? 'growPop 0.85s ease-out'
+              : justSown
+                ? 'sproutIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                : 'none',
+        }}
+      >
+        <PlantSVG stage={stage} night={night} />
       </span>
 
-      {/* Badges */}
-      {(seed.state === 'answered' || seed.pray_count > 0) && (
+      {/* Badge — compacto: respondida (✨) o nº de oraciones con racha opcional (🔥) */}
+      {showBadge && (
         <span
           className="mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none flex items-center gap-0.5"
           style={{
-            background: night ? 'rgba(8,14,6,0.7)' : 'rgba(255,255,255,0.85)',
-            color: night ? '#c8e0a8' : '#5a7040',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
+            background: night ? 'rgba(8,14,6,0.55)' : 'rgba(255,255,255,0.5)',
+            color: night ? '#c8e0a8' : '#4a5f38',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
           }}
         >
-          {seed.state === 'answered' ? '✨' : '🙏'}
-          {seed.pray_count > 0 && seed.pray_count}
+          {seed.state === 'answered' ? (
+            <span>✨</span>
+          ) : (
+            <>
+              <span>🙏{seed.pray_count}</span>
+              {seed.current_streak > 1 && <span>🔥</span>}
+            </>
+          )}
         </span>
       )}
     </button>
@@ -104,7 +204,7 @@ export default function GardenDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { gardens, fetchGardens } = useGardenStore()
-  const { seeds, loading, fetchSeeds, clearSeeds, subscribeToGarden } = useSeedStore()
+  const { seeds, loading, fetchSeeds, clearSeeds, subscribeToGarden, praySeed } = useSeedStore()
   const { user } = useAuthStore()
   const [manualPeriod, setManualPeriod] = useState(null)
   const [showDevSelector, setShowDevSelector] = useState(false)
@@ -124,6 +224,62 @@ export default function GardenDetailPage() {
   const [gardenLoading, setGardenLoading] = useState(!garden)
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [selectedSeed, setSelectedSeed] = useState(null)
+  const [watering, setWatering] = useState(null) // { seedId, fromStage, phase }
+  const [justSownId, setJustSownId] = useState(null)
+  const wateringTimers = useRef([])
+  const sownTimer = useRef(null)
+  const RAIN_MS = 1900
+
+  // Marca la semilla recién sembrada para que "brote" con animación
+  const handleSown = (seedId) => {
+    if (sownTimer.current) clearTimeout(sownTimer.current)
+    setJustSownId(seedId)
+    sownTimer.current = setTimeout(() => setJustSownId(null), 800)
+  }
+
+  // Orar con animación: cierra el detalle al instante, riega de inmediato y
+  // decide el crecimiento cuando responde el backend (dentro de la ventana de lluvia)
+  const prayWithAnimation = async (seedToPray, { dev = false } = {}) => {
+    const fromStage = getPlantStage(seedToPray)
+    setSelectedSeed(null)
+    wateringTimers.current.forEach(clearTimeout)
+    wateringTimers.current = []
+    setWatering({ seedId: seedToPray.id, fromStage, phase: 'rain' })
+
+    let result
+    try {
+      const [r] = await Promise.all([
+        praySeed(seedToPray.id, dev),
+        new Promise((res) => {
+          wateringTimers.current.push(setTimeout(res, RAIN_MS))
+        }),
+      ])
+      result = r
+    } catch {
+      setWatering(null)
+      return
+    }
+
+    if (!result || result.already) {
+      setWatering(null)
+      return
+    }
+    const toStage = getPlantStage({ ...seedToPray, growth_points: result.growth_points })
+    if (toStage > fromStage) {
+      setWatering((w) => (w ? { ...w, phase: 'grow' } : null))
+      wateringTimers.current.push(setTimeout(() => setWatering(null), 900))
+    } else {
+      setWatering(null)
+    }
+  }
+
+  useEffect(() => () => {
+    wateringTimers.current.forEach(clearTimeout)
+    if (sownTimer.current) clearTimeout(sownTimer.current)
+  }, [])
+
+  const activeSeeds = useMemo(() => seeds.filter((s) => s.state !== 'archived'), [seeds])
+  const layout = useMemo(() => computeLayout(activeSeeds), [activeSeeds])
 
   useEffect(() => {
     if (!garden) {
@@ -151,7 +307,6 @@ export default function GardenDetailPage() {
   }
 
   const meta = GARDEN_META[garden.type] || GARDEN_META.personal
-  const activeSeeds = seeds.filter((s) => s.state !== 'archived')
   const currentUserId = user?.id
 
   return (
@@ -165,6 +320,9 @@ export default function GardenDetailPage() {
           backgroundPosition: 'bottom center',
         }}
       />
+
+      {/* Luciérnagas (solo de noche) */}
+      {night && <Fireflies />}
 
       {/* Header flotante */}
       <header className="relative z-20 px-4 pt-6 pb-3">
@@ -264,11 +422,31 @@ export default function GardenDetailPage() {
         </div>
       )}
 
+      {/* Cargando semillas */}
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <span
+            className="text-4xl animate-pulse"
+            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))' }}
+          >
+            🌱
+          </span>
+        </div>
+      )}
+
       {/* Plantas dispersas en la pradera */}
       <div className="absolute inset-0 z-10">
         {!loading &&
           activeSeeds.map((seed) => (
-            <Plant key={seed.id} seed={seed} night={night} onTap={() => setSelectedSeed(seed)} />
+            <Plant
+              key={seed.id}
+              seed={seed}
+              night={night}
+              watering={watering}
+              pos={layout[seed.id]}
+              justSown={justSownId === seed.id}
+              onTap={() => setSelectedSeed(seed)}
+            />
           ))}
       </div>
 
@@ -315,14 +493,20 @@ export default function GardenDetailPage() {
       )}
 
       {showCreateSheet && (
-        <SeedBottomSheet gardenId={id} onClose={() => setShowCreateSheet(false)} />
+        <SeedBottomSheet
+          gardenId={id}
+          onSown={handleSown}
+          onClose={() => setShowCreateSheet(false)}
+        />
       )}
 
       {selectedSeed && (
         <SeedDetailSheet
+          key={selectedSeed.id}
           seed={selectedSeed}
           currentUserId={currentUserId}
           onClose={() => setSelectedSeed(null)}
+          onPray={prayWithAnimation}
         />
       )}
     </div>

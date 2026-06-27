@@ -1,5 +1,8 @@
+from datetime import timedelta
+from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,6 +11,9 @@ from rest_framework.exceptions import PermissionDenied, NotFound
 from gardens.models import Garden, GardenMembership
 from .models import Seed, SeedInteraction, SeedEvent
 from .serializers import SeedSerializer, SeedCreateSerializer, SeedEventSerializer
+
+# Tope de bonificación por racha (puntos extra por oración)
+STREAK_BONUS_CAP = 4
 
 
 def _assert_member(garden, user):
@@ -80,27 +86,65 @@ class SeedDetailView(APIView):
 
 
 class SeedPrayView(APIView):
+    """
+    Orar = regar. Máximo una vez al día por usuario y semilla.
+    El crecimiento es acumulativo (nunca baja) y la racha de días consecutivos
+    da puntos extra por oración.
+    """
+
     def post(self, request, pk):
         seed = get_object_or_404(Seed, pk=pk)
         _assert_member(seed.garden, request.user)
-        interaction, created = SeedInteraction.objects.get_or_create(
+        today = timezone.localdate()
+
+        # Solo en desarrollo: ?dev=1 ignora el límite de 1 oración/día (para testear crecimiento)
+        force = settings.DEBUG and request.query_params.get('dev') == '1'
+
+        already = not force and SeedInteraction.objects.filter(
+            seed=seed, user=request.user, type=SeedInteraction.TYPE_PRAYED,
+            created_at__date=today,
+        ).exists()
+        if already:
+            return Response(self._state(seed, prayed_today=True, already=True))
+
+        SeedInteraction.objects.create(
             seed=seed, user=request.user, type=SeedInteraction.TYPE_PRAYED,
         )
-        if created:
-            seed.pray_count += 1
-            seed.save(update_fields=['pray_count'])
-            seed.garden.touch()
-            display = request.user.display_name or request.user.email
-            SeedEvent.objects.create(
-                seed=seed,
-                description=f'{display} oró 🙏',
-                created_by=request.user,
-            )
+
+        # Racha por semilla: cuenta los días-calendario con actividad
+        if seed.last_pray_date == today:
+            pass  # ya hubo oraciones hoy; la racha no avanza otra vez
+        elif seed.last_pray_date == today - timedelta(days=1):
+            seed.current_streak += 1
         else:
-            interaction.delete()
-            seed.pray_count = max(0, seed.pray_count - 1)
-            seed.save(update_fields=['pray_count'])
-        return Response({'prayed': created, 'pray_count': seed.pray_count})
+            seed.current_streak = 1
+        seed.last_pray_date = today
+
+        bonus = min(max(seed.current_streak - 1, 0), STREAK_BONUS_CAP)
+        seed.growth_points += 1 + bonus
+        seed.pray_count += 1
+        seed.save(update_fields=[
+            'growth_points', 'pray_count', 'current_streak', 'last_pray_date',
+        ])
+        seed.garden.touch()
+
+        display = request.user.display_name or request.user.email
+        racha = f' · racha {seed.current_streak} días 🔥' if seed.current_streak > 1 else ''
+        SeedEvent.objects.create(
+            seed=seed,
+            description=f'{display} oró 🙏{racha}',
+            created_by=request.user,
+        )
+        return Response(self._state(seed, prayed_today=True, already=False))
+
+    def _state(self, seed, prayed_today, already):
+        return {
+            'prayed_today': prayed_today,
+            'already': already,
+            'pray_count': seed.pray_count,
+            'growth_points': seed.growth_points,
+            'current_streak': seed.current_streak,
+        }
 
 
 class SeedAnswerView(APIView):

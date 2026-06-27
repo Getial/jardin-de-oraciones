@@ -1,6 +1,6 @@
 # Jardín de Oraciones — Plan de Trabajo
 
-**Última actualización:** 2026-06-04
+**Última actualización:** 2026-06-23
 **Estado general:** 🟢 En progreso — Fase 5
 
 ---
@@ -137,17 +137,29 @@
 
 **Objetivo:** La pantalla principal del jardín es inmersiva, viva y se actualiza en tiempo real.
 
-### Sistema de crecimiento
-- [x] Fórmula basada en `pray_count`: 0 → tierra, 1-2 → semilla, 3-5 → brote, 6-10 → planta, 11-20 → flor, 21+ → árbol
-- [x] Estados calculados en frontend (`getGrowthStage`)
+### Sistema de crecimiento (rediseñado)
+- [x] Crecimiento por `growth_points` acumulativos (nunca baja, no se marchita)
+- [x] Etapas: 0→tierra, 1-3→semilla, 4-9→brote, 10-19→planta, 20-39→flor, 40+→árbol
+- [x] Orar = regar, **máx. 1 vez al día** por usuario y semilla (campo `prayed_today`)
+- [x] **Racha por semilla** (días consecutivos): bonus de +1 punto/día hasta +4 por oración
+- [x] Oración respondida → la planta llega como mínimo a Flor (`getPlantStage`)
+- [x] Backfill de `growth_points = pray_count` para semillas existentes (migración 0002)
 
 ### Pantalla jardín (Home)
-- [x] Layout inmersivo (fondo jardín día/noche, grid 2 columnas)
+- [x] Layout inmersivo full-screen (imagen de fondo, sin tarjetas)
+- [x] Plantas pequeñas dispersas en la pradera con perspectiva (posición estable por hash del id)
 - [x] Header flotante con nombre, tipo, miembros
 - [x] FAB "+ Sembrar"
-- [x] Bottom nav: Jardines / Ajustes
+- [x] Sin bottom nav en el jardín (volver con ← del header)
 - [x] Plantas como elementos tocables (SVG animado por estado)
-- [x] Bottom sheet al tocar planta (info + historial + acciones)
+- [x] Bottom sheet al tocar planta (info + historial + orar + acciones)
+- [x] Badge por planta con 🙏 oraciones, 🔥 racha y ✨ respondida
+
+### Fondos por hora del día (CSS/SVG + imágenes)
+- [x] 4 fondos ilustrados: amanecer (5-8h), día (8-17h), atardecer (17-19h), nocturno (19-5h)
+- [x] Selección automática según hora del sistema
+- [x] Selector manual oculto para desarrollo (long-press en el nombre del jardín)
+- [x] Plantas con paleta nocturna en el periodo nocturno
 
 ### Animaciones placeholder (CSS/SVG)
 - [x] Estado `tierra` — montículo de tierra con semilla
@@ -156,12 +168,15 @@
 - [x] Estado `planta` — tallo alto con 4 hojas, sway
 - [x] Estado `flor` — planta con pétalos, sway + bloom
 - [x] Estado `árbol` — árbol con copa completa + destellos
-- [x] Modo nocturno automático (por hora del sistema, activa a las 20h)
 
 ### Realtime
 - [x] Suscripción Supabase Realtime a `seeds_seed` filtrada por `garden_id`
 - [x] `02_realtime.sql` ejecutado (habilitar publicación de tablas)
 - [ ] Indicador de presencia (v2)
+
+### Performance (frontend)
+- [x] Code splitting por ruta (React.lazy + Suspense)
+- [x] Vendor chunks separados (react, supabase) para mejor caché
 
 ---
 

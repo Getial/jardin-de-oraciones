@@ -14,17 +14,28 @@ export const SEED_TYPES = [
   { key: 'special_moment', emoji: '✨', label: 'Momento especial', desc: 'Un momento para recordar' },
 ]
 
+// El crecimiento se mide en "puntos" (growth_points) que se acumulan al orar
+// (1 punto base + bonificación por racha). Nunca bajan.
 const GROWTH_STAGES = [
   { max: 0,        stage: 0, label: 'Tierra' },
-  { max: 2,        stage: 1, label: 'Semilla' },
-  { max: 5,        stage: 2, label: 'Brote' },
-  { max: 10,       stage: 3, label: 'Planta' },
-  { max: 20,       stage: 4, label: 'Flor' },
+  { max: 3,        stage: 1, label: 'Semilla' },
+  { max: 9,        stage: 2, label: 'Brote' },
+  { max: 19,       stage: 3, label: 'Planta' },
+  { max: 39,       stage: 4, label: 'Flor' },
   { max: Infinity, stage: 5, label: 'Árbol' },
 ]
 
-export function getGrowthStage(prayCount) {
-  return GROWTH_STAGES.find((s) => prayCount <= s.max) ?? GROWTH_STAGES[GROWTH_STAGES.length - 1]
+// Etapa mínima que alcanza una oración respondida (Flor)
+export const ANSWERED_MIN_STAGE = 4
+
+export function getGrowthStage(points) {
+  return GROWTH_STAGES.find((s) => points <= s.max) ?? GROWTH_STAGES[GROWTH_STAGES.length - 1]
+}
+
+// Etapa final considerando el estado (respondida → al menos Flor)
+export function getPlantStage(seed) {
+  const base = getGrowthStage(seed.growth_points ?? 0).stage
+  return seed.state === 'answered' ? Math.max(base, ANSWERED_MIN_STAGE) : base
 }
 
 export function timeAgo(dateStr) {

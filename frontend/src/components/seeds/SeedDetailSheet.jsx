@@ -3,34 +3,35 @@ import useSeedStore from '../../stores/seedStore'
 import { api } from '../../services/api'
 import { SEED_TYPES, timeAgo } from '../../lib/constants'
 
-export default function SeedDetailSheet({ seed, currentUserId, onClose }) {
-  const { praySeed, answerSeed, deleteSeed } = useSeedStore()
-  const [events, setEvents] = useState([])
+export default function SeedDetailSheet({ seed, currentUserId, onClose, onPray }) {
+  const { answerSeed, deleteSeed } = useSeedStore()
+  const [events, setEvents] = useState(null) // null = cargando
   const [actionLoading, setActionLoading] = useState(false)
-  const [prayLoading, setPrayLoading] = useState(false)
-  const [prayed, setPrayed] = useState(seed.has_prayed)
-  const [prayCount, setPrayCount] = useState(seed.pray_count)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const prayedToday = seed.prayed_today
+  const prayCount = seed.pray_count
+  const streak = seed.current_streak || 0
 
   const isAuthor = seed.author_id === currentUserId
   const seedType = SEED_TYPES.find((t) => t.key === seed.type) || SEED_TYPES[0]
 
-  const handlePray = async () => {
-    if (prayLoading) return
-    setPrayLoading(true)
-    try {
-      const result = await praySeed(seed.id)
-      setPrayed(result.prayed)
-      setPrayCount(result.pray_count)
-    } finally {
-      setPrayLoading(false)
-    }
+  // El cierre + animación lo maneja la página (cierre instantáneo, no espera al backend)
+  const handlePray = () => {
+    if (prayedToday) return
+    onPray?.(seed)
   }
 
+  const handleDevPray = () => {
+    onPray?.(seed, { dev: true })
+  }
+
+  // Historial: lazy load — se carga aparte para no bloquear ni "saltar" el detalle
   useEffect(() => {
+    let alive = true
     api.get(`/api/seeds/${seed.id}/`)
-      .then((data) => setEvents(data.events || []))
-      .catch(() => {})
+      .then((data) => { if (alive) setEvents(data.events || []) })
+      .catch(() => { if (alive) setEvents([]) })
+    return () => { alive = false }
   }, [seed.id])
 
   const handleAnswer = async () => {
@@ -117,32 +118,65 @@ export default function SeedDetailSheet({ seed, currentUserId, onClose }) {
         <p className="text-xs mb-5" style={{ color: 'var(--color-text-muted)' }}>
           {seed.author_name} · {timeAgo(seed.created_at)}
           {prayCount > 0 && ` · ${prayCount} ${prayCount === 1 ? 'oración' : 'oraciones'}`}
+          {streak > 1 && ` · 🔥 racha de ${streak} días`}
         </p>
 
-        {/* Orar (regar) */}
+        {/* Orar (regar) — máximo una vez al día */}
         <button
           onClick={handlePray}
-          disabled={prayLoading}
-          className="w-full py-3.5 rounded-2xl font-medium text-sm mb-6 disabled:opacity-60 transition-colors"
+          disabled={prayedToday}
+          className="w-full py-3.5 rounded-2xl font-medium text-sm mb-2 disabled:cursor-default transition-colors"
           style={{
-            background: prayed ? 'var(--color-primary)' : 'var(--color-bg)',
-            color: prayed ? 'white' : 'var(--color-primary)',
-            border: prayed ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-primary)',
+            background: prayedToday ? 'var(--color-bg)' : 'var(--color-primary)',
+            color: prayedToday ? 'var(--color-primary)' : 'white',
+            border: '1.5px solid var(--color-primary)',
           }}
         >
-          {prayed ? '🙏 Oraste por esta semilla' : '🙏 Orar por esta semilla'}
+          {prayedToday ? '🙏 Ya oraste hoy' : '🙏 Orar hoy'}
         </button>
+        <p className="text-center text-xs mb-6" style={{ color: 'var(--color-text-muted)' }}>
+          {prayedToday ? 'Vuelve mañana para seguir regando 🌱' : 'Cada día que oras, la planta crece'}
+        </p>
 
-        {/* Events timeline */}
-        {events.length > 0 && (
-          <div className="mb-6 px-4 py-4 rounded-2xl" style={{ background: 'var(--color-bg)' }}>
-            <p
-              className="text-xs font-medium mb-3 uppercase tracking-wider"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              Historial
-            </p>
+        {/* Atajo de desarrollo: orar sin límite diario (solo en dev) */}
+        {import.meta.env.DEV && (
+          <button
+            onClick={handleDevPray}
+            className="w-full py-2 rounded-xl text-xs mb-6"
+            style={{ border: '1px dashed var(--color-text-muted)', color: 'var(--color-text-muted)' }}
+          >
+            🧪 Orar (dev — sin límite diario)
+          </button>
+        )}
+
+        {/* Historial (lazy) — la sección siempre está presente para evitar el salto */}
+        <div className="mb-6 px-4 py-4 rounded-2xl" style={{ background: 'var(--color-bg)' }}>
+          <p
+            className="text-xs font-medium mb-3 uppercase tracking-wider"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Historial
+          </p>
+
+          {events === null ? (
+            // Skeleton mientras carga
             <div className="flex flex-col gap-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'var(--color-primary-soft)' }} />
+                  <div className="flex-1">
+                    <div className="h-3 rounded animate-pulse mb-1.5" style={{ background: 'rgba(0,0,0,0.07)', width: `${70 - i * 12}%` }} />
+                    <div className="h-2.5 rounded animate-pulse" style={{ background: 'rgba(0,0,0,0.05)', width: '40px' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : events.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Aún no hay eventos.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3" style={{ animation: 'fadeIn 0.25s ease-out' }}>
               {events.map((ev) => (
                 <div key={ev.id} className="flex gap-3 items-start">
                   <div
@@ -160,8 +194,8 @@ export default function SeedDetailSheet({ seed, currentUserId, onClose }) {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Actions (solo para el autor) */}
         {isAuthor && (

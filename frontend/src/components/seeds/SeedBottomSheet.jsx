@@ -10,7 +10,7 @@ const PLACEHOLDERS = {
   special_moment: 'Describe este momento especial...',
 }
 
-export default function SeedBottomSheet({ gardenId, onClose }) {
+export default function SeedBottomSheet({ gardenId, onClose, onSown }) {
   const { createSeed } = useSeedStore()
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
@@ -30,13 +30,14 @@ export default function SeedBottomSheet({ gardenId, onClose }) {
     setError('')
     setLoading(true)
     try {
-      await createSeed({
+      const seed = await createSeed({
         garden: gardenId,
         type: selectedType.key,
         title: title.trim(),
         content: content.trim(),
         privacy,
       })
+      onSown?.(seed.id)
       onClose()
     } catch (err) {
       setError(err.message)

@@ -23,12 +23,18 @@ const useSeedStore = create((set, get) => ({
     return seed
   },
 
-  praySeed: async (seedId) => {
-    const result = await api.post(`/api/seeds/${seedId}/pray/`)
+  praySeed: async (seedId, dev = false) => {
+    const result = await api.post(`/api/seeds/${seedId}/pray/${dev ? '?dev=1' : ''}`)
     set((state) => ({
       seeds: state.seeds.map((seed) =>
         seed.id === seedId
-          ? { ...seed, pray_count: result.pray_count, has_prayed: result.prayed }
+          ? {
+              ...seed,
+              pray_count: result.pray_count,
+              growth_points: result.growth_points,
+              current_streak: result.current_streak,
+              prayed_today: result.prayed_today,
+            }
           : seed
       ),
     }))
