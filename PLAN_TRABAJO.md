@@ -1,7 +1,7 @@
 # Jardín de Oraciones — Plan de Trabajo
 
-**Última actualización:** 2026-06-23
-**Estado general:** 🟢 En progreso — Fase 5
+**Última actualización:** 2026-06-30
+**Estado general:** 🟢 En progreso — Fase 5 (pulido)
 
 ---
 
@@ -122,14 +122,15 @@
 ### Pantallas
 - [x] Bottom sheet "Sembrar" (selección de tipo + form según tipo)
 - [x] Detalle de semilla (contenido + historial de eventos)
-- [x] Acción "Oré por esta petición 🙏" (toggle — regar/desregar)
-- [x] Marcar oración como respondida ✨
+- [x] Acción "Orar hoy 🙏" (acumulativa, 1 vez al día, sin deshacer)
+- [x] Marcar oración como respondida ✨ (solo el autor)
 - [x] Semillas privadas vs compartidas
 
 ### Lógica
-- [x] Historial espiritual por semilla (timeline de eventos)
+- [x] Historial espiritual por semilla (timeline de eventos) — carga lazy con skeleton
 - [x] Sistema de permisos: autor o admin puede borrar
 - [x] `display_name` sincronizado desde JWT Supabase en cada request
+- [x] `author_id` expone el `supabase_uid` (coincide con la sesión del front)
 
 ---
 
@@ -168,15 +169,31 @@
 - [x] Estado `planta` — tallo alto con 4 hojas, sway
 - [x] Estado `flor` — planta con pétalos, sway + bloom
 - [x] Estado `árbol` — árbol con copa completa + destellos
+- [x] Animación de regar al orar (nube + lluvia + pop de crecimiento)
+- [x] Brote (`sproutIn`) + halo de luz al sembrar una semilla nueva
+- [x] Entrada suave de plantas al cargar / estado de carga del jardín
+- [x] Luciérnagas flotantes en modo nocturno
 
 ### Realtime
 - [x] Suscripción Supabase Realtime a `seeds_seed` filtrada por `garden_id`
 - [x] `02_realtime.sql` ejecutado (habilitar publicación de tablas)
 - [ ] Indicador de presencia (v2)
 
+### UX / Pulido
+- [x] Cierre optimista al orar y al sembrar (no espera al backend)
+- [x] Anti-solapamiento de plantas (las nuevas se reubican; las viejas no se mueven)
+- [x] Badge compacto (✨ respondida · 🙏 oraciones · 🔥 racha)
+- [x] Toast de error (ej. al fallar el sembrado)
+- [x] Atajo de dev: orar sin límite diario (`?dev=1`, solo en DEBUG)
+
+### Accesibilidad / Contraste (WCAG AA)
+- [x] Colores de marca oscurecidos para ≥4.5:1 (`primary`, `error`, `success`)
+- [x] Opacidad de paneles del jardín ajustada (header, badges, vacío) verificada al peor caso de fondo
+
 ### Performance (frontend)
 - [x] Code splitting por ruta (React.lazy + Suspense)
 - [x] Vendor chunks separados (react, supabase) para mejor caché
+- [x] Fondos optimizados a WebP (~8.5 MB → ~543 KB total, −94%)
 
 ---
 

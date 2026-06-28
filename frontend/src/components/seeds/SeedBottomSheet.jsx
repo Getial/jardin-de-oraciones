@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import useSeedStore from '../../stores/seedStore'
 import { SEED_TYPES } from '../../lib/constants'
 
 const PLACEHOLDERS = {
@@ -10,40 +9,29 @@ const PLACEHOLDERS = {
   special_moment: 'Describe este momento especial...',
 }
 
-export default function SeedBottomSheet({ gardenId, onClose, onSown }) {
-  const { createSeed } = useSeedStore()
+export default function SeedBottomSheet({ gardenId, onClose, onSubmit }) {
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [privacy, setPrivacy] = useState('shared')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const needsTitle = selectedType && ['verse', 'special_moment'].includes(selectedType.key)
 
-  const handleCreate = async () => {
+  // El cierre + creación lo maneja la página (cierre instantáneo para ver el brote)
+  const handleCreate = () => {
     if (!content.trim()) {
       setError('El contenido no puede estar vacío.')
       return
     }
-    setError('')
-    setLoading(true)
-    try {
-      const seed = await createSeed({
-        garden: gardenId,
-        type: selectedType.key,
-        title: title.trim(),
-        content: content.trim(),
-        privacy,
-      })
-      onSown?.(seed.id)
-      onClose()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    onSubmit({
+      garden: gardenId,
+      type: selectedType.key,
+      title: title.trim(),
+      content: content.trim(),
+      privacy,
+    })
   }
 
   return (
@@ -183,11 +171,11 @@ export default function SeedBottomSheet({ gardenId, onClose, onSown }) {
 
               <button
                 onClick={handleCreate}
-                disabled={loading || !content.trim()}
+                disabled={!content.trim()}
                 className="w-full py-4 rounded-2xl text-white font-medium text-sm mt-1 disabled:opacity-60"
                 style={{ background: 'var(--color-primary)' }}
               >
-                {loading ? 'Sembrando...' : '🌱 Sembrar'}
+                🌱 Sembrar
               </button>
             </div>
           </>

@@ -8,10 +8,10 @@ import Fireflies from '../components/garden/Fireflies'
 import SeedBottomSheet from '../components/seeds/SeedBottomSheet'
 import SeedDetailSheet from '../components/seeds/SeedDetailSheet'
 import { GARDEN_META, SEED_TYPES, getPlantStage } from '../lib/constants'
-import fondoDia from '../assets/fondo_jardin.png'
-import fondoAmanecer from '../assets/fondo_jardin_amanecer.png'
-import fondoAtardecer from '../assets/fondo_jardin_atardecer.png'
-import fondoNocturno from '../assets/fondo_jardin_nocturno.png'
+import fondoDia from '../assets/fondo_jardin.webp'
+import fondoAmanecer from '../assets/fondo_jardin_amanecer.webp'
+import fondoAtardecer from '../assets/fondo_jardin_atardecer.webp'
+import fondoNocturno from '../assets/fondo_jardin_nocturno.webp'
 
 const BACKGROUNDS = {
   amanecer: fondoAmanecer,
@@ -159,10 +159,29 @@ function Plant({ seed, night, onTap, watering, pos, justSown }) {
         </div>
       )}
 
+      {/* Halo que marca dónde brotó la nueva semilla */}
+      {justSown && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: '50%',
+            marginLeft: '-36px',
+            bottom: '-4px',
+            width: '72px',
+            height: '34px',
+            borderRadius: '50%',
+            background:
+              'radial-gradient(ellipse at center, rgba(255,238,160,0.95) 0%, rgba(255,238,160,0) 70%)',
+            animation: 'sownPulse 1.1s ease-in-out infinite',
+          }}
+        />
+      )}
+
       <span
         style={{
           width,
           display: 'block',
+          position: 'relative',
           transformOrigin: 'bottom center',
           animation:
             isWatering && phase === 'grow'
@@ -180,7 +199,7 @@ function Plant({ seed, night, onTap, watering, pos, justSown }) {
         <span
           className="mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none flex items-center gap-0.5"
           style={{
-            background: night ? 'rgba(8,14,6,0.55)' : 'rgba(255,255,255,0.5)',
+            background: night ? 'rgba(8,14,6,0.6)' : 'rgba(255,255,255,0.7)',
             color: night ? '#c8e0a8' : '#4a5f38',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
@@ -204,7 +223,7 @@ export default function GardenDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { gardens, fetchGardens } = useGardenStore()
-  const { seeds, loading, fetchSeeds, clearSeeds, subscribeToGarden, praySeed } = useSeedStore()
+  const { seeds, loading, fetchSeeds, clearSeeds, subscribeToGarden, praySeed, createSeed } = useSeedStore()
   const { user } = useAuthStore()
   const [manualPeriod, setManualPeriod] = useState(null)
   const [showDevSelector, setShowDevSelector] = useState(false)
@@ -230,11 +249,31 @@ export default function GardenDetailPage() {
   const sownTimer = useRef(null)
   const RAIN_MS = 1900
 
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
+
+  const showToast = (msg) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(msg)
+    toastTimer.current = setTimeout(() => setToast(null), 3000)
+  }
+
   // Marca la semilla recién sembrada para que "brote" con animación
-  const handleSown = (seedId) => {
+  const markSown = (seedId) => {
     if (sownTimer.current) clearTimeout(sownTimer.current)
     setJustSownId(seedId)
-    sownTimer.current = setTimeout(() => setJustSownId(null), 800)
+    sownTimer.current = setTimeout(() => setJustSownId(null), 2500)
+  }
+
+  // Sembrar: cierra el sheet al instante y crea en segundo plano (para ver el brote)
+  const handleSow = async (data) => {
+    setShowCreateSheet(false)
+    try {
+      const seed = await createSeed(data)
+      markSown(seed.id)
+    } catch (err) {
+      showToast(err.message || 'No se pudo sembrar la semilla')
+    }
   }
 
   // Orar con animación: cierra el detalle al instante, riega de inmediato y
@@ -276,6 +315,7 @@ export default function GardenDetailPage() {
   useEffect(() => () => {
     wateringTimers.current.forEach(clearTimeout)
     if (sownTimer.current) clearTimeout(sownTimer.current)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
   }, [])
 
   const activeSeeds = useMemo(() => seeds.filter((s) => s.state !== 'archived'), [seeds])
@@ -329,7 +369,7 @@ export default function GardenDetailPage() {
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-2xl"
           style={{
-            background: night ? 'rgba(8,14,6,0.55)' : 'rgba(255,255,255,0.55)',
+            background: night ? 'rgba(8,14,6,0.68)' : 'rgba(255,255,255,0.72)',
             backdropFilter: 'blur(14px)',
             WebkitBackdropFilter: 'blur(14px)',
           }}
@@ -460,7 +500,7 @@ export default function GardenDetailPage() {
             className="text-sm max-w-xs mb-5 px-4 py-2 rounded-2xl"
             style={{
               color: night ? '#e8f0d8' : '#2d2d2d',
-              background: night ? 'rgba(8,14,6,0.55)' : 'rgba(255,255,255,0.6)',
+              background: night ? 'rgba(8,14,6,0.68)' : 'rgba(255,255,255,0.75)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
             }}
@@ -495,9 +535,19 @@ export default function GardenDetailPage() {
       {showCreateSheet && (
         <SeedBottomSheet
           gardenId={id}
-          onSown={handleSown}
+          onSubmit={handleSow}
           onClose={() => setShowCreateSheet(false)}
         />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-2xl text-sm font-medium text-white shadow-lg"
+          style={{ background: 'rgba(45,45,45,0.92)', animation: 'fadeIn 0.2s ease-out' }}
+        >
+          {toast}
+        </div>
       )}
 
       {selectedSeed && (

@@ -3,14 +3,15 @@
 @theme {
   /* ── Colores ── */
   --color-bg: #f7f5ef;
-  --color-primary: #7a8f63;
+  /* Verde de marca oscurecido para cumplir contraste AA (texto sobre claro y blanco sobre verde) */
+  --color-primary: #5f7548;
   --color-primary-soft: #a8b79a;
   --color-earth: #c7b299;
   --color-gold: #d9c7a2;
   --color-text: #2d2d2d;
   --color-text-muted: #6e6e6e;
-  --color-error: #d66a5e;
-  --color-success: #7ca26a;
+  --color-error: #bf473b;
+  --color-success: #4d7c40;
   --color-surface: #ffffff;
 
   /* ── Tipografía ── */
@@ -119,6 +120,12 @@ body {
   0%   { transform: scaleY(0.1) scaleX(0.5); opacity: 0; }
   55%  { transform: scaleY(1.12) scaleX(1.05); opacity: 1; }
   100% { transform: scaleY(1) scaleX(1); }
+}
+
+/* Halo de luz que marca dónde brotó la nueva semilla */
+@keyframes sownPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50%      { opacity: 1;   transform: scale(1.18); }
 }
 
 /* ── Luciérnagas (modo nocturno) ── */
