@@ -1,7 +1,7 @@
 # Jardín de Oraciones — Plan de Trabajo
 
-**Última actualización:** 2026-06-30
-**Estado general:** 🟢 En progreso — Fase 5 (pulido)
+**Última actualización:** 2026-07-02
+**Estado general:** 🟢 En progreso — Fase 5 (pulido) · deploy backend a Railway en curso
 
 ---
 
@@ -50,7 +50,8 @@
 - [x] Conectar Django a Supabase PostgreSQL (DATABASE_URL)
 - [x] Integración de Supabase Auth: middleware para validar JWT de Supabase en Django
 - [x] Configurar variables de entorno (.env local y en Railway)
-- [ ] Deploy inicial en Railway *(pendiente para Fase 7)*
+- [x] Backend listo para Railway: settings por entorno, whitenoise (estáticos), Procfile (migrate + collectstatic + gunicorn), CSRF/seguridad de proxy
+- [ ] Deploy del backend en Railway *(en curso — pruebas de producción)*
 
 ### Supabase
 - [x] Crear proyecto en Supabase
