@@ -27,6 +27,19 @@
   --shadow-card: 0 4px 20px 0 rgba(45, 45, 45, 0.08);
 }
 
+/* ── Modo oscuro (overrides de los tokens neutros) ── */
+html.dark {
+  --color-bg: #181a12;
+  --color-surface: #23271b;
+  --color-text: #ecebe1;
+  --color-text-muted: #9ea291;
+  --color-gold: #3a3e30;
+  --color-earth: #5c4f39;
+  --color-primary-soft: #6f885a;
+  --shadow-soft: 0 2px 12px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 20px 0 rgba(0, 0, 0, 0.45);
+}
+
 /* ── Reset base ── */
 *,
 *::before,

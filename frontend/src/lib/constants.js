@@ -22,7 +22,8 @@ const GROWTH_STAGES = [
   { max: 9,        stage: 2, label: 'Brote' },
   { max: 19,       stage: 3, label: 'Planta' },
   { max: 39,       stage: 4, label: 'Flor' },
-  { max: Infinity, stage: 5, label: 'Árbol' },
+  { max: 79,       stage: 5, label: 'Árbol' },
+  { max: Infinity, stage: 6, label: 'Árbol especial' },
 ]
 
 // Etapa mínima que alcanza una oración respondida (Flor)

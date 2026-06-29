@@ -11,6 +11,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>Jardín de Oraciones</title>
+    <script>
+      // Aplica el tema antes de pintar para evitar parpadeo
+      try {
+        var m = localStorage.getItem('jardin-theme') || 'auto'
+        var dark = m === 'dark' || (m === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.documentElement.classList.add('dark')
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

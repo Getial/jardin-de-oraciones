@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import useAuthStore from './stores/authStore'
+import useThemeStore from './stores/themeStore'
 import ProtectedRoute from './components/ProtectedRoute'
 
 // Code splitting por ruta — cada página se descarga solo cuando se visita
@@ -12,6 +13,7 @@ const JoinGardenPage = lazy(() => import('./pages/JoinGardenPage'))
 const InvitePage = lazy(() => import('./pages/InvitePage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const GardenDetailPage = lazy(() => import('./pages/GardenDetailPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function PageFallback() {
   return (
@@ -21,29 +23,14 @@ function PageFallback() {
   )
 }
 
-// Placeholder hasta Fase 7
-function SettingsPage() {
-  const { signOut, user } = useAuthStore()
-  return (
-    <div className="min-h-svh flex flex-col items-center justify-center gap-4 px-6" style={{ background: 'var(--color-bg)' }}>
-      <p className="font-medium" style={{ color: 'var(--color-text)' }}>{user?.email}</p>
-      <button
-        onClick={signOut}
-        className="px-6 py-3 rounded-2xl text-sm"
-        style={{ border: '1.5px solid var(--color-error)', color: 'var(--color-error)' }}
-      >
-        Cerrar sesión
-      </button>
-    </div>
-  )
-}
-
 export default function App() {
   const init = useAuthStore((s) => s.init)
+  const initTheme = useThemeStore((s) => s.init)
 
   useEffect(() => {
+    initTheme()
     init()
-  }, [init])
+  }, [init, initTheme])
 
   return (
     <BrowserRouter>
