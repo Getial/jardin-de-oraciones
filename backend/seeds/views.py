@@ -1,6 +1,6 @@
 from datetime import timedelta
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -25,10 +25,19 @@ class GardenSeedListView(APIView):
     def get(self, request, garden_id):
         garden = get_object_or_404(Garden, pk=garden_id)
         _assert_member(garden, request.user)
+        # Prefetch de las oraciones de HOY del usuario → evita 1 query por semilla
+        # para calcular prayed_today (ver SeedSerializer.get_prayed_today).
+        my_today = SeedInteraction.objects.filter(
+            user=request.user,
+            type=SeedInteraction.TYPE_PRAYED,
+            created_at__date=timezone.localdate(),
+        )
         seeds = Seed.objects.filter(
             Q(garden=garden, privacy=Seed.PRIVACY_SHARED) |
             Q(garden=garden, author=request.user)
-        ).select_related('author').distinct()
+        ).select_related('author').prefetch_related(
+            Prefetch('interactions', queryset=my_today, to_attr='my_today_prayers')
+        ).distinct()
         return Response(SeedSerializer(seeds, many=True, context={'request': request}).data)
 
 

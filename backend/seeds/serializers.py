@@ -45,6 +45,11 @@ class SeedSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
+        # Listado: usa el prefetch de oraciones de hoy (sin query extra por semilla)
+        prayers = getattr(obj, 'my_today_prayers', None)
+        if prayers is not None:
+            return len(prayers) > 0
+        # Detalle (objeto único): query puntual
         return obj.interactions.filter(
             user=request.user,
             type=SeedInteraction.TYPE_PRAYED,

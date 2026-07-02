@@ -5,7 +5,7 @@
 **Stack:** React 19 + Vite + Zustand (frontend) · Django 6 + DRF (backend) · Supabase (Auth, PostgreSQL, Realtime, Storage)
 **Alcance:** Revisión arquitectural + módulos núcleo (auth, jardines, semillas/crecimiento, jardín visual, tema) y cambios recientes (modo oscuro, PlantSVG, prep de deploy a Railway).
 
-> **Actualización 2026-07-02:** resueltos **A1**, **A2**, **A4** y **A5** (ver estado en cada hallazgo). Pendientes: A3 (N+1) y los Medios.
+> **Actualización 2026-07-02:** resueltos **todos los Altos** (A1, A2, A3, A4, A5 — ver estado en cada hallazgo). Pendientes: los Medios (M1–M6) y Bajos.
 
 ---
 
@@ -69,8 +69,9 @@ supabase.channel(`garden-seeds-${gardenId}`)
 
 ---
 
-### A3 🟠 Alto — N+1 queries en los listados
-**Archivos:** `backend/gardens/serializers.py:29-37`, `backend/seeds/serializers.py` (`get_prayed_today`)
+### A3 ✅ Resuelto (2026-07-02) — N+1 queries en los listados
+**Archivos:** `backend/gardens/serializers.py`, `backend/seeds/serializers.py`, `backend/seeds/views.py`
+**Estado:** corregido → jardines usan la caché del `prefetch` (`len(memberships.all())` y recorrido en Python para `my_role`); semillas usan un `Prefetch` de las oraciones de hoy (`to_attr='my_today_prayers'`) con fallback puntual en el detalle. Verificado: jardines = 3 queries constantes, semillas = 2 queries constantes (antes crecía con N).
 
 ```python
 def get_member_count(self, obj):
@@ -138,9 +139,9 @@ if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
 
 | ID | Dimensión | Hallazgo | Archivo |
 |----|-----------|----------|---------|
-| M1 | Testabilidad | **Cero tests.** La lógica de crecimiento/racha (1/día, bonus, monotónica) es el núcleo del producto y la más propensa a regresiones. | `backend/*/tests.py` (vacíos), `seeds/views.py` |
-| M2 | Consistencia | `MemberSerializer.user_id` expone el **pk de Django** (`user.id`), no el `supabase_uid`. Misma clase de bug que ya se corrigió en semillas: si el front compara ese id con la sesión, nunca coincide. | `gardens/serializers.py:8` |
-| M3 | Calidad | Error de ESLint: `handleJoinWithCode` usado antes de declararse (funciona por hoisting del efecto, pero es error del linter). | `pages/JoinGardenPage.jsx:16` |
+| M1 | Testabilidad | ✅ **Resuelto (2026-07-02).** 8 tests en `seeds/tests.py` cubren la lógica de crecimiento/racha (1/día, bonus, tope, monotonía) + permisos de orar/responder. Corren con SQLite (`DATABASE_URL="" DEBUG=True python manage.py test seeds`). | `backend/seeds/tests.py` |
+| M2 | Consistencia | ✅ **Resuelto (2026-07-02).** `MemberSerializer.user_id` ahora expone `user.supabase_uid` (coincide con la sesión del frontend). | `gardens/serializers.py:8` |
+| M3 | Calidad | ✅ **Resuelto (2026-07-02).** Reordenado + auto-unión con `.then/.catch`; lint del frontend 100% limpio (también se quitó el `get` sin usar en `gardenStore`). | `pages/JoinGardenPage.jsx` |
 | M4 | Seguridad | `except Exception as e: AuthenticationFailed(f'... {e}')` filtra detalle interno al cliente; el docstring dice "soporta RS256 y HS256" (desactualizado). | `users/authentication.py:52` |
 | M5 | UX/Robustez | `fetchGardens` guarda `error` en el store pero la UI no lo muestra → fallos de red silenciosos. Sin paginación en listados. | `stores/gardenStore.js:15`, `pages/GardensPage.jsx` |
 | M6 | Calidad | `authStore.init` se suscribe a `onAuthStateChange` sin guardar/limpiar la suscripción; si `init` se llamara más de una vez, se acumulan listeners. | `stores/authStore.js:13` |
@@ -173,9 +174,9 @@ if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
 1. ~~**Quitar `HS256`** de los algoritmos JWT (A1).~~ ✅ Hecho.
 2. ~~**Asegurar Realtime** (A2) — RLS + política por membresía.~~ ✅ Hecho.
 3. ~~**Arreglar el fallback de `API_URL`** (A4) y **endurecer `SECRET_KEY`** en prod (A5).~~ ✅ Hecho.
-4. **Resolver N+1** en los listados (A3) con `annotate` + prefetch. **← siguiente**
-5. **Agregar tests** a `SeedPrayView` (M1) y unificar identidad por `supabase_uid` (M2).
-6. Limpiar el error de **ESLint** (M3) y mostrar **errores de red** en la UI (M5).
+4. ~~**Resolver N+1** en los listados (A3).~~ ✅ Hecho.
+5. ~~**Agregar tests** a `SeedPrayView` (M1) y unificar identidad por `supabase_uid` (M2).~~ ✅ Hecho.
+6. ~~Limpiar el error de **ESLint** (M3).~~ ✅ Hecho. Falta: mostrar **errores de red** en la UI (M5), `except Exception` (M4), cleanup de listener (M6). **← siguiente**
 
 ---
 

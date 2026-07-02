@@ -5,7 +5,8 @@ from .models import Garden, GardenMembership, Invitation
 class MemberSerializer(serializers.ModelSerializer):
     display_name = serializers.CharField(source='user.display_name')
     avatar_url = serializers.URLField(source='user.avatar_url')
-    user_id = serializers.UUIDField(source='user.id')
+    # supabase_uid: identidad que coincide con la sesión del frontend (auth.uid)
+    user_id = serializers.UUIDField(source='user.supabase_uid')
 
     class Meta:
         model = GardenMembership
@@ -27,14 +28,18 @@ class GardenSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'last_activity_at']
 
     def get_member_count(self, obj):
-        return obj.memberships.count()
+        # len() sobre la relación prefetcheada evita una query por jardín (usa la caché)
+        return len(obj.memberships.all())
 
     def get_my_role(self, obj):
         request = self.context.get('request')
         if not request:
             return None
-        membership = obj.memberships.filter(user=request.user).first()
-        return membership.role if membership else None
+        # Recorre las membresías ya prefetcheadas en vez de lanzar otra query
+        for m in obj.memberships.all():
+            if m.user_id == request.user.id:
+                return m.role
+        return None
 
 
 class GardenCreateSerializer(serializers.ModelSerializer):

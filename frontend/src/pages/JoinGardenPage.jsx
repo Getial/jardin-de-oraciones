@@ -4,17 +4,12 @@ import useGardenStore from '../stores/gardenStore'
 
 export default function JoinGardenPage() {
   const [searchParams] = useSearchParams()
-  const [code, setCode] = useState(searchParams.get('code')?.toUpperCase() || '')
-  const [loading, setLoading] = useState(false)
+  const urlCode = searchParams.get('code')
+  const [code, setCode] = useState(urlCode?.toUpperCase() || '')
+  const [loading, setLoading] = useState(!!urlCode) // auto-unión → arranca cargando
   const [error, setError] = useState('')
   const { joinGarden } = useGardenStore()
   const navigate = useNavigate()
-
-  // Si viene el código en la URL, unirse automáticamente
-  useEffect(() => {
-    const urlCode = searchParams.get('code')
-    if (urlCode) handleJoinWithCode(urlCode.toUpperCase())
-  }, [])
 
   const handleJoinWithCode = async (codeToJoin) => {
     setError('')
@@ -27,6 +22,18 @@ export default function JoinGardenPage() {
       setLoading(false)
     }
   }
+
+  // Si viene el código en la URL, unirse automáticamente.
+  // Se usa joinGarden directo (setState solo en callbacks async, no en el cuerpo del efecto).
+  useEffect(() => {
+    if (!urlCode) return
+    let active = true
+    joinGarden(urlCode.toUpperCase().trim())
+      .then((garden) => { if (active) navigate(`/garden/${garden.id}`, { replace: true }) })
+      .catch((err) => { if (active) { setError(err.message); setLoading(false) } })
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleJoin = (e) => {
     e.preventDefault()

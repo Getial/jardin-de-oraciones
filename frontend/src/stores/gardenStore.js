@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { api } from '../services/api'
 
-const useGardenStore = create((set, get) => ({
+const useGardenStore = create((set) => ({
   gardens: [],
   loading: false,
   error: null,
