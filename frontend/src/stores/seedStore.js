@@ -7,8 +7,10 @@ const useSeedStore = create((set, get) => ({
   loading: false,
   error: null,
 
-  fetchSeeds: async (gardenId) => {
-    set({ loading: true, error: null })
+  // silent: recarga en segundo plano sin activar el estado de carga
+  // (evita que las plantas parpadeen al actualizarse por Realtime)
+  fetchSeeds: async (gardenId, { silent = false } = {}) => {
+    if (!silent) set({ loading: true, error: null })
     try {
       const seeds = await api.get(`/api/gardens/${gardenId}/seeds/`)
       set({ seeds, loading: false })
@@ -67,8 +69,8 @@ const useSeedStore = create((set, get) => ({
           filter: `garden_id=eq.${gardenId}`,
         },
         () => {
-          // Re-fetch para obtener datos serializados correctos (has_prayed, author_name…)
-          get().fetchSeeds(gardenId)
+          // Recarga silenciosa: actualiza los datos sin ocultar las plantas
+          get().fetchSeeds(gardenId, { silent: true })
         }
       )
       .subscribe()

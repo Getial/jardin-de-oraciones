@@ -7,9 +7,14 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-insecure-key-change-in-production')
+_INSECURE_KEY = 'dev-insecure-key-change-in-production'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _INSECURE_KEY)
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+
+# En producción la SECRET_KEY debe venir del entorno (ni vacía ni la insegura por defecto)
+if not DEBUG and SECRET_KEY in ('', _INSECURE_KEY):
+    raise RuntimeError('DJANGO_SECRET_KEY no está configurada en producción.')
 
 # Railway expone el dominio público en RAILWAY_PUBLIC_DOMAIN
 RAILWAY_DOMAIN = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')

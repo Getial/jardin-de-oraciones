@@ -1,11 +1,17 @@
 import { supabase } from '../lib/supabase'
 
 const { hostname } = window.location
+
+// - Dev (`npm run dev`): backend en el mismo host, puerto 8000. Así funciona tanto
+//   en la PC (localhost) como desde el celular por IP de LAN (192.168.x.x:8000).
+// - Producción: debe venir de VITE_API_URL. Si falta, se usa el mismo origen
+//   (y se avisa) en vez de inventar `http://host:8000` (mixed-content / puerto inexistente).
 const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (hostname === 'localhost' || hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : `http://${hostname}:8000`)
+  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://${hostname}:8000` : '')
+
+if (!import.meta.env.VITE_API_URL && !import.meta.env.DEV) {
+  console.warn('[api] VITE_API_URL no está definida: las llamadas usarán el mismo origen.')
+}
 
 async function getHeaders() {
   const { data: { session } } = await supabase.auth.getSession()

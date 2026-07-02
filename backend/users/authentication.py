@@ -20,7 +20,9 @@ def _get_jwks_client():
 
 class SupabaseJWTAuthentication(BaseAuthentication):
     """
-    Valida el JWT emitido por Supabase Auth via JWKS (soporta RS256 y HS256).
+    Valida el JWT emitido por Supabase Auth contra la llave pública del JWKS.
+    Solo se aceptan algoritmos asimétricos (RS256/ES256): incluir HS256 sería
+    inseguro porque la llave del JWKS es pública (riesgo de algorithm confusion).
     El frontend envía: Authorization: Bearer <supabase_access_token>
     """
 
@@ -42,7 +44,7 @@ class SupabaseJWTAuthentication(BaseAuthentication):
             return jwt.decode(
                 token,
                 signing_key.key,
-                algorithms=['RS256', 'HS256', 'ES256'],
+                algorithms=['RS256', 'ES256'],
                 options={'verify_exp': True, 'verify_aud': False},
             )
         except jwt.ExpiredSignatureError:

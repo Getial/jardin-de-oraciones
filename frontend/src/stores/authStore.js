@@ -9,9 +9,12 @@ const useAuthStore = create((set) => ({
   init: async () => {
     const { data: { session } } = await supabase.auth.getSession()
     set({ session, user: session?.user ?? null, loading: false })
+    // Realtime usa el token del usuario para que las políticas RLS (auth.uid()) apliquen
+    supabase.realtime.setAuth(session?.access_token ?? null)
 
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ session, user: session?.user ?? null })
+      supabase.realtime.setAuth(session?.access_token ?? null)
     })
   },
 
